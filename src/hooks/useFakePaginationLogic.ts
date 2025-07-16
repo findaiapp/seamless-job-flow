@@ -77,8 +77,8 @@ export function useFakePaginationLogic() {
         jobTags: Math.random() > 0.8 && index < 2 ? ['🆕 Just Posted'] : job.jobTags || []
       })));
 
-      // Track user activity
-      trackPaginationActivity(pageNumber);
+      // Track user activity - disabled for now
+      // trackPaginationActivity(pageNumber);
       
     } catch (error) {
       console.error('Error fetching fake jobs:', error);
