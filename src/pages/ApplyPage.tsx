@@ -273,8 +273,39 @@ const ApplyPage = () => {
     return urlData.publicUrl;
   };
 
+  const submitApplication = async (formData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .insert([formData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("❌ Supabase insert error:", error);
+        toast({
+          title: "❌ Application failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { success: false };
+      }
+
+      console.log("✅ Application success", data);
+      return { success: true, id: data.id };
+    } catch (e: any) {
+      console.error("🔥 Unexpected error:", e);
+      toast({
+        title: "⚠️ Something went wrong",
+        description: e.message,
+        variant: "destructive",
+      });
+      return { success: false };
+    }
+  };
+
   const handleSubmit = async () => {
-    // 🚨 SOFT SUBMIT MODE: Validate required fields first
+    // Validate required fields first
     if (!formData.fullName || !formData.phone) {
       toast({
         title: "Missing required fields", 
@@ -287,14 +318,13 @@ const ApplyPage = () => {
     setSubmitting(true);
     
     try {
-      // 🔥 UPGRADE: Allow anonymous submissions - don't block if user is null
+      // Get current user (allow anonymous)
       console.log('🔍 Debug: Getting current user...');
       const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
       
       console.log('👤 Debug: Current user:', currentUser);
       console.log('🎯 Debug: Job ID:', job_id);
       
-      // If no user, that's OK - we'll set seeker_id = null
       if (authError) {
         console.warn('⚠️ Auth error (continuing with anonymous):', authError);
       }
@@ -314,14 +344,13 @@ const ApplyPage = () => {
         }
       }
 
-      // 🔥 SOFT SUBMIT MODE: Insert to applications table (anonymous OK)
+      // Prepare application data
       const applicationPayload = {
         job_id: job_id,
-        name: formData.fullName,  // Using 'name' field from schema
+        name: formData.fullName,
         phone: formData.phone,
-        seeker_id: currentUser?.id || null,  // Nullable for anonymous
+        seeker_id: currentUser?.id || null,
         created_at: new Date().toISOString(),
-        // Additional fields for completeness
         email: formData.email || currentUser?.email || '',
         location: formData.location,
         position_applied_for: formData.positionApplyingFor,
@@ -337,15 +366,12 @@ const ApplyPage = () => {
 
       console.log('📤 Debug: Application payload:', applicationPayload);
       
-      const { data: applicationData, error: appError } = await supabase
-        .from('applications')
-        .insert(applicationPayload)
-        .select()
-        .single();
-
-      console.log('📥 Debug: Insert response:', { applicationData, error: appError });
-
-      if (appError) throw appError;
+      // Submit application using the new function
+      const result = await submitApplication(applicationPayload);
+      
+      if (!result.success) {
+        return; // Error already handled in submitApplication
+      }
 
       // Record application in applied_jobs table (only if logged in)
       if (currentUser?.id && job_id) {
@@ -355,21 +381,20 @@ const ApplyPage = () => {
       // Clear saved form data
       localStorage.removeItem('apply_prefill_data');
       
-      // 🔥 SOFT SUBMIT MODE: Show success state with visual confirmation
+      // Show success state
       setShowSuccess(true);
       
-      // 🔥 SUCCESS: Show success toast as specified
+      // Success toast and redirect
       toast({
-        title: "✅ Application sent!",
+        title: "🎉 Application submitted successfully!",
         description: currentUser ? "You'll hear back soon." : "Want to track your application? Create a free account to get updates!",
       });
       
       console.log('🎉 Debug: Application submitted successfully!');
       
-      // 🔥 REDIRECT: Show follow-up signup CTA for anonymous users
+      // Redirect to search page
       setTimeout(() => {
         if (!currentUser) {
-          // Show signup modal or redirect with context
           navigate('/search-jobs?applied=1&signup=true');
         } else {
           navigate('/search-jobs?applied=1');
@@ -379,7 +404,7 @@ const ApplyPage = () => {
     } catch (error: any) {
       console.error('❌ Submission error:', error);
       
-      // 🧯 FINAL FIX: Smart error handling
+      // Handle specific error cases
       if (error.message?.includes('duplicate') || error.code === '23505') {
         toast({
           title: "Already applied!",
@@ -389,17 +414,6 @@ const ApplyPage = () => {
         return;
       }
       
-      // Handle not logged in case
-      if (error.message?.includes('log in') || error.message?.includes('auth') || error.message?.includes('Authentication')) {
-        toast({
-          title: "Authentication required",
-          description: "Please log in to apply.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // 🧯 FINAL FIX: Generic insert failure
       toast({
         title: "Something went wrong",
         description: "Something went wrong. Try again later.",
