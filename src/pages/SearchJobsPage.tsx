@@ -43,7 +43,7 @@ interface Job {
 }
 
 const NYC_BOROUGHS = [
-  { value: "", label: "All NYC" },
+  { value: "all", label: "All NYC" },
   { value: "Manhattan", label: "Manhattan" },
   { value: "Brooklyn", label: "Brooklyn" },
   { value: "Queens", label: "Queens" },
@@ -233,7 +233,7 @@ export default function SearchJobsPage() {
     }
 
     // Location filter
-    if (selectedBorough) {
+    if (selectedBorough && selectedBorough !== "all") {
       filtered = filtered.filter(job =>
         job.location.toLowerCase().includes(selectedBorough.toLowerCase())
       );
@@ -579,7 +579,7 @@ export default function SearchJobsPage() {
         <div className="mb-4">
           <p className="text-sm text-muted-foreground">
             {filteredJobs.length} jobs found
-            {selectedBorough && ` in ${selectedBorough}`}
+            {selectedBorough && selectedBorough !== "all" && ` in ${selectedBorough}`}
           </p>
         </div>
 
@@ -721,7 +721,7 @@ export default function SearchJobsPage() {
               variant="outline" 
               onClick={() => {
                 setSearchTerm("");
-                setSelectedBorough("");
+                setSelectedBorough("all");
                 setActiveFilters({
                   highPay: false,
                   noInterview: false,
