@@ -18429,6 +18429,18 @@ export type Database = {
         Args: { workspace_id_param: string; cost_param?: number }
         Returns: undefined
       }
+      insert_craigslist_post: {
+        Args: {
+          p_variant: string
+          p_title: string
+          p_body: string
+          p_borough: string
+          p_job_type: string
+          p_used: boolean
+          p_utm_link: string
+        }
+        Returns: string
+      }
       is_user_admin: {
         Args: { user_email: string }
         Returns: boolean
