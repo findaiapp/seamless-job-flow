@@ -11,6 +11,8 @@ import PostJobPage from "./pages/PostJobPage";
 import ThankYouPage from "./pages/ThankYouPage";
 import CraigslistPostGenerator from "./pages/CraigslistPostGenerator";
 import CraigslistAutoPage from "./pages/CraigslistAutoPage";
+import AlertsPage from "./pages/AlertsPage";
+import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 import DebugBanner from "./components/DebugBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -33,6 +35,8 @@ const App = () => (
             <Route path="/post-job" element={<PostJobPage />} />
             <Route path="/craigslist-generator" element={<CraigslistPostGenerator />} />
             <Route path="/craigslist-auto" element={<CraigslistAutoPage />} />
+            <Route path="/alerts" element={<AlertsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/thank-you" element={<ThankYouPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

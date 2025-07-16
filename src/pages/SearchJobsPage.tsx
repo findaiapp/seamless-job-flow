@@ -16,7 +16,8 @@ import { useSavedJobs } from "@/hooks/useSavedJobs";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocationDetection } from "@/hooks/useLocationDetection";
-import { SmartPaginationFeed } from "@/components/SmartPaginationFeed";
+import { JobsYoullLove } from "@/components/JobsYoullLove";
+import { InfiniteJobFeed } from "@/components/InfiniteJobFeed";
 import { SmartAlertsModal } from "@/components/SmartAlertsModal";
 import { User } from "@supabase/supabase-js";
 import { seedJobDatabase } from "@/utils/seedDatabase";
@@ -1143,11 +1144,17 @@ export default function SearchJobsPage() {
           )}
         </>
       ) : (
-        /* 🦄 NEW: Smart Pagination Feed for fake jobs */
-        <SmartPaginationFeed 
-          onJobClick={handleJobClick}
-          className="mt-4"
-        />
+        <div className="space-y-6">
+          {/* Jobs You'll Love Section */}
+          <JobsYoullLove onJobClick={handleJobClick} />
+          
+          {/* Infinite Job Feed */}
+          <InfiniteJobFeed 
+            onJobClick={handleJobClick}
+            searchTerm={searchTerm}
+            filters={activeFilters}
+          />
+        </div>
       )}
 
       {/* Fallback State for No Results */}
