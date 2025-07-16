@@ -131,17 +131,19 @@ const CraigslistPostGenerator = () => {
     try {
       const utmLink = `https://hireloop.ai/apply?job=${jobType.toLowerCase().replace(' ', '-')}&city=${city.toLowerCase()}&ref=craigslist`;
       
+      const insertData = {
+        variant: 'generator',
+        title,
+        body,
+        borough,
+        job_type: jobType,
+        used: true,
+        utm_link: utmLink
+      };
+      
       const { error } = await supabase
         .from('craigslist_posts')
-        .insert({
-          variant: 'generator',
-          title,
-          body,
-          borough,
-          job_type: jobType,
-          used: true,
-          utm_link: utmLink
-        } as any);
+        .insert(insertData as any);
 
       if (error) throw error;
 
