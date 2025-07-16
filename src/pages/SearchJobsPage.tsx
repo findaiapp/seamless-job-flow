@@ -117,9 +117,14 @@ export default function SearchJobsPage() {
           <Link to="/" className="text-xl font-bold text-foreground">
             Hireloop
           </Link>
-          <Button asChild variant="outline">
-            <Link to="/post-job">Post a Job</Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm">
+              Saved Jobs
+            </Button>
+            <Button asChild>
+              <Link to="/post-job">Post a Job</Link>
+            </Button>
+          </div>
         </div>
       </header>
 

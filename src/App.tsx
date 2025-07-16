@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import SearchJobsPage from "./pages/SearchJobsPage";
+import ApplyPage from "./pages/ApplyPage";
+import ApplyFallback from "./pages/ApplyFallback";
+import PostJobPage from "./pages/PostJobPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -18,6 +21,9 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/search-jobs" element={<SearchJobsPage />} />
+          <Route path="/apply/:job_id" element={<ApplyPage />} />
+          <Route path="/apply" element={<ApplyFallback />} />
+          <Route path="/post-job" element={<PostJobPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
