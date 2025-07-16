@@ -429,12 +429,12 @@ const CraigslistPostGenerator = () => {
                       <div>
                         <p className="font-medium text-sm mb-2">Improvements:</p>
                         <ul className="text-sm space-y-1">
-                          {conversionAnalysis.improvements.map((improvement, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <span className="text-blue-500">•</span>
-                              <span>{improvement}</span>
-                            </li>
-                          ))}
+                           {conversionAnalysis.improvements.map((improvement, index) => (
+                             <li key={index} className="flex items-start gap-2">
+                               <span className="text-primary">•</span>
+                               <span>{improvement}</span>
+                             </li>
+                           ))}
                         </ul>
                       </div>
                     )}
@@ -444,12 +444,12 @@ const CraigslistPostGenerator = () => {
                       <div>
                         <p className="font-medium text-sm mb-2">Strengths:</p>
                         <ul className="text-sm space-y-1">
-                          {conversionAnalysis.strengths.map((strength, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <span className="text-green-500">✓</span>
-                              <span>{strength}</span>
-                            </li>
-                          ))}
+                           {conversionAnalysis.strengths.map((strength, index) => (
+                             <li key={index} className="flex items-start gap-2">
+                               <span className="text-emerald-600 dark:text-emerald-400">✓</span>
+                               <span>{strength}</span>
+                             </li>
+                           ))}
                         </ul>
                       </div>
                     )}
