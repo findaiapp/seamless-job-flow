@@ -4776,23 +4776,30 @@ export type Database = {
         Row: {
           active: boolean | null
           applications: number | null
+          auto_generated: boolean | null
           auto_repost: boolean | null
           body: string | null
           borough: string | null
           city_code: string | null
           clicks: number | null
+          conversion_score: number | null
           craigslist_url: string | null
           created_at: string
+          daily_variant_id: string | null
           fatigue_flagged: boolean | null
+          flag_risk_score: number | null
           flagged: boolean | null
           id: string
           job_type: string | null
           last_repost_at: string | null
           last_reposted_at: string | null
+          manual_posted: boolean | null
+          messages_received: number | null
           next_repost_date: string | null
           performance_score: number | null
           post_id: string | null
           posted_at: string
+          posted_date: string | null
           repost_count: number | null
           repost_frequency_days: number | null
           test_id: string | null
@@ -4801,28 +4808,37 @@ export type Database = {
           used: boolean | null
           utm_link: string | null
           variant: string
+          variant_score: number | null
           views_count: number | null
+          views_estimated: number | null
         }
         Insert: {
           active?: boolean | null
           applications?: number | null
+          auto_generated?: boolean | null
           auto_repost?: boolean | null
           body?: string | null
           borough?: string | null
           city_code?: string | null
           clicks?: number | null
+          conversion_score?: number | null
           craigslist_url?: string | null
           created_at?: string
+          daily_variant_id?: string | null
           fatigue_flagged?: boolean | null
+          flag_risk_score?: number | null
           flagged?: boolean | null
           id?: string
           job_type?: string | null
           last_repost_at?: string | null
           last_reposted_at?: string | null
+          manual_posted?: boolean | null
+          messages_received?: number | null
           next_repost_date?: string | null
           performance_score?: number | null
           post_id?: string | null
           posted_at?: string
+          posted_date?: string | null
           repost_count?: number | null
           repost_frequency_days?: number | null
           test_id?: string | null
@@ -4831,28 +4847,37 @@ export type Database = {
           used?: boolean | null
           utm_link?: string | null
           variant: string
+          variant_score?: number | null
           views_count?: number | null
+          views_estimated?: number | null
         }
         Update: {
           active?: boolean | null
           applications?: number | null
+          auto_generated?: boolean | null
           auto_repost?: boolean | null
           body?: string | null
           borough?: string | null
           city_code?: string | null
           clicks?: number | null
+          conversion_score?: number | null
           craigslist_url?: string | null
           created_at?: string
+          daily_variant_id?: string | null
           fatigue_flagged?: boolean | null
+          flag_risk_score?: number | null
           flagged?: boolean | null
           id?: string
           job_type?: string | null
           last_repost_at?: string | null
           last_reposted_at?: string | null
+          manual_posted?: boolean | null
+          messages_received?: number | null
           next_repost_date?: string | null
           performance_score?: number | null
           post_id?: string | null
           posted_at?: string
+          posted_date?: string | null
           repost_count?: number | null
           repost_frequency_days?: number | null
           test_id?: string | null
@@ -4861,7 +4886,9 @@ export type Database = {
           used?: boolean | null
           utm_link?: string | null
           variant?: string
+          variant_score?: number | null
           views_count?: number | null
+          views_estimated?: number | null
         }
         Relationships: [
           {
