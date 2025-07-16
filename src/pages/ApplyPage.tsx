@@ -77,7 +77,7 @@ const ApplyPage = () => {
     }
   };
 
-  // Smart prefill logic
+  // Smart prefill logic for Craigslist
   useEffect(() => {
     const prefillData = () => {
       // Get saved data from localStorage
@@ -91,16 +91,25 @@ const ApplyPage = () => {
         }
       }
 
-      // Handle referral source from URL params
+      // Enhanced smart prefill from URL params for Craigslist
       const ref = searchParams.get('ref');
       const utmSource = searchParams.get('utm_source');
       const utmCampaign = searchParams.get('utm_campaign');
+      const jobParam = searchParams.get('job');
+      const cityParam = searchParams.get('city');
       
-      if (ref) {
+      // Craigslist-specific prefilling
+      if (utmSource === 'craigslist' || utmCampaign === 'craigslist') {
+        setFormData(prev => ({ 
+          ...prev, 
+          howHeard: 'Craigslist',
+          referralSource: 'craigslist',
+          ...(jobParam && { experience: `${jobParam.replace('-', ' ')} experience` }),
+          ...(cityParam && { location: cityParam.charAt(0).toUpperCase() + cityParam.slice(1) })
+        }));
+      } else if (ref) {
         localStorage.setItem('referral_code', ref);
         setFormData(prev => ({ ...prev, referralSource: ref, howHeard: 'Referral Link' }));
-      } else if (utmSource === 'craigslist' || utmCampaign === 'craigslist') {
-        setFormData(prev => ({ ...prev, howHeard: 'Craigslist' }));
       }
     };
 
@@ -280,13 +289,14 @@ const ApplyPage = () => {
       // Clear saved data
       localStorage.removeItem('apply_prefill_data');
       
-      // Redirect to thank you page with referral info
-      const thankYouUrl = new URL('/thank-you', window.location.origin);
-      if (referralCode) {
-        thankYouUrl.searchParams.set('ref', referralCode);
-      }
+      // Enhanced completion routing to /search-jobs
+      toast({
+        title: "✅ Application received!",
+        description: "Browse open roles while you wait.",
+      });
       
-      navigate(thankYouUrl.pathname + thankYouUrl.search);
+      // Redirect to search-jobs instead of thank-you
+      navigate('/search-jobs');
       
     } catch (error) {
       console.error('Submission error:', error);
@@ -356,8 +366,33 @@ const ApplyPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Craigslist Trust Box */}
+      {formData.howHeard === 'Craigslist' && (
+        <div className="sticky top-0 z-50 bg-green-50 border-b border-green-200 text-green-800">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-center gap-6 text-sm flex-wrap">
+              <div className="flex items-center gap-1">
+                <CheckCircle className="h-4 w-4" />
+                You're in the right place
+              </div>
+              <div className="flex items-center gap-1">
+                <Shield className="h-4 w-4" />
+                Secure application via Hireloop — no signup required
+              </div>
+              <div className="flex items-center gap-1">
+                <User className="h-4 w-4" />
+                Marie from Luigi's Pizza is reviewing applicants now
+              </div>
+            </div>
+            <div className="text-center mt-1 text-xs">
+              💼 We're hiring for: Delivery Drivers, Cooks, Front Desk
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Sticky Progress Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold">Apply Now</h1>
