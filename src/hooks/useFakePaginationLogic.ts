@@ -1,3 +1,4 @@
+// Updated fake pagination logic hook - no database calls
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 
