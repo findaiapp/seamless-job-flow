@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, MapPin, DollarSign, Clock, Zap, Heart, Briefcase } from "lucide-react";
+import { Search, MapPin, DollarSign, Clock, Zap, Heart, Briefcase, Mail, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { useReferralTracking } from "@/hooks/useReferralTracking";
+import { useSavedJobs } from "@/hooks/useSavedJobs";
+import { useToast } from "@/hooks/use-toast";
+import { User } from "@supabase/supabase-js";
 
 interface Job {
   id: string;
@@ -25,6 +29,11 @@ interface Job {
 }
 
 export default function SearchJobsPage() {
+  const { toast } = useToast();
+  const { getReferralCode } = useReferralTracking();
+  const [user, setUser] = useState<User | null>(null);
+  const { isJobSaved, toggleSavedJob, getSavedJobsCount } = useSavedJobs(user);
+  
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,9 +43,24 @@ export default function SearchJobsPage() {
     noInterview: false,
     quickStart: false,
   });
-  const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
+  const [alertEmails, setAlertEmails] = useState<{[key: string]: string}>({});
+  const [submittingAlert, setSubmittingAlert] = useState<{[key: string]: boolean}>({});
 
   useEffect(() => {
+    // Check auth state
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+    };
+    getSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    // Set page metadata
     document.title = "Search Jobs Near You | Hireloop";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
@@ -47,6 +71,8 @@ export default function SearchJobsPage() {
       meta.content = 'Real jobs. Instant apply. No interviews.';
       document.head.appendChild(meta);
     }
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -90,16 +116,45 @@ export default function SearchJobsPage() {
     }
   };
 
-  const toggleSavedJob = (jobId: string) => {
-    setSavedJobs(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(jobId)) {
-        newSet.delete(jobId);
-      } else {
-        newSet.add(jobId);
-      }
-      return newSet;
-    });
+  const handleJobAlert = async (jobId: string) => {
+    const email = alertEmails[jobId];
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email to set up job alerts.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmittingAlert(prev => ({ ...prev, [jobId]: true }));
+
+    try {
+      const job = jobs.find(j => j.id === jobId);
+      await supabase.from('job_alerts').insert({
+        email,
+        job_id: jobId,
+        job_title: job?.title,
+        job_type: job?.job_type,
+        location: job?.location
+      });
+
+      toast({
+        title: "Alert set up!",
+        description: "We'll email you about similar jobs.",
+      });
+
+      setAlertEmails(prev => ({ ...prev, [jobId]: '' }));
+    } catch (error) {
+      console.error('Error setting up job alert:', error);
+      toast({
+        title: "Error",
+        description: "Failed to set up job alert. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingAlert(prev => ({ ...prev, [jobId]: false }));
+    }
   };
 
   const toggleFilter = (filterKey: keyof typeof filters) => {
@@ -183,12 +238,16 @@ export default function SearchJobsPage() {
             </Button>
           </div>
 
-          {/* Saved Jobs Button */}
-          <div className="flex justify-end">
+          <div className="flex justify-between items-center">
             <Button variant="ghost" size="sm" className="flex items-center gap-1">
               <Heart className="h-4 w-4" />
-              Saved Jobs ({savedJobs.size})
+              Saved Jobs ({getSavedJobsCount()})
             </Button>
+            {!user && getSavedJobsCount() > 0 && (
+              <Button variant="outline" size="sm">
+                Sign Up to Sync Saves
+              </Button>
+            )}
           </div>
         </div>
 
@@ -224,7 +283,7 @@ export default function SearchJobsPage() {
                     >
                       <Heart
                         className={`h-4 w-4 ${
-                          savedJobs.has(job.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"
+                          isJobSaved(job.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"
                         }`}
                       />
                     </Button>
@@ -269,11 +328,41 @@ export default function SearchJobsPage() {
                     {job.description}
                   </p>
                   
-                  <Button asChild className="w-full">
+                  <Button asChild className="w-full mb-3">
                     <Link to={`/apply/${job.id}?ref=search`}>
                       Apply Instantly
                     </Link>
                   </Button>
+
+                  {/* Job Alert Section */}
+                  <div className="border-t pt-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Bell className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Get more jobs like this</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        type="email"
+                        placeholder="your@email.com"
+                        value={alertEmails[job.id] || ''}
+                        onChange={(e) => setAlertEmails(prev => ({ 
+                          ...prev, 
+                          [job.id]: e.target.value 
+                        }))}
+                        className="flex-1 text-sm"
+                        size={40}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => handleJobAlert(job.id)}
+                        disabled={submittingAlert[job.id] || !alertEmails[job.id]}
+                        className="flex items-center gap-1"
+                      >
+                        <Mail className="h-3 w-3" />
+                        {submittingAlert[job.id] ? "..." : "Alert"}
+                      </Button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             ))}
