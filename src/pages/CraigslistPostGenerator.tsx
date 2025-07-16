@@ -131,18 +131,16 @@ const CraigslistPostGenerator = () => {
     try {
       const utmLink = `https://hireloop.ai/apply?job=${jobType.toLowerCase().replace(' ', '-')}&city=${city.toLowerCase()}&ref=craigslist`;
       
-      // Use explicit casting to bypass TypeScript type checking issue
-      const { error } = await (supabase as any)
-        .from('craigslist_posts')
-        .insert({
-          variant: 'generator',
-          title: title,
-          body: body,
-          borough: borough,
-          job_type: jobType,
-          used: true,
-          utm_link: utmLink
-        });
+      // Use raw SQL to bypass TypeScript type issues
+      const { error } = await supabase.rpc('insert_craigslist_post', {
+        p_variant: 'generator',
+        p_title: title,
+        p_body: body,
+        p_borough: borough,
+        p_job_type: jobType,
+        p_used: true,
+        p_utm_link: utmLink
+      });
 
       if (error) throw error;
 
