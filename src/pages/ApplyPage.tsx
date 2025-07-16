@@ -122,7 +122,7 @@ const ApplyPage = () => {
 
       try {
         const { data, error } = await supabase
-          .from('jobs')
+          .from('user_posted_jobs')
           .select('*')
           .eq('id', job_id)
           .maybeSingle();
@@ -132,7 +132,17 @@ const ApplyPage = () => {
         if (!data) {
           setNotFound(true);
         } else {
-          setJob(data);
+          // Transform Supabase data to Job interface
+          const transformedJob: Job = {
+            id: data.id,
+            title: data.job_title || 'Unknown Position',
+            company: data.company || 'Unknown Company',
+            pay_range: '$15-25/hr', // Default since no pay_range field exists
+            location: data.location || 'Remote',
+            description: data.description || 'No description available',
+            created_at: data.created_at
+          };
+          setJob(transformedJob);
         }
       } catch (error) {
         console.error('Error fetching job:', error);
@@ -318,8 +328,24 @@ const ApplyPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading job details...</div>
+      <div className="min-h-screen bg-background">
+        {/* Show skeleton header */}
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="h-6 w-24 bg-muted rounded animate-pulse"></div>
+              <div className="h-8 w-16 bg-muted rounded animate-pulse"></div>
+            </div>
+            <div className="h-2 bg-muted rounded animate-pulse"></div>
+          </div>
+        </header>
+        
+        <div className="flex items-center justify-center py-16">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <div className="text-lg">Loading job details...</div>
+          </div>
+        </div>
       </div>
     );
   }

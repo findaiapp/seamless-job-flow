@@ -10,28 +10,33 @@ import ApplyFallback from "./pages/ApplyFallback";
 import PostJobPage from "./pages/PostJobPage";
 import ThankYouPage from "./pages/ThankYouPage";
 import NotFound from "./pages/NotFound";
+import DebugBanner from "./components/DebugBanner";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/search-jobs" element={<SearchJobsPage />} />
-          <Route path="/apply/:job_id" element={<ApplyPage />} />
-          <Route path="/apply" element={<ApplyFallback />} />
-          <Route path="/post-job" element={<PostJobPage />} />
-          <Route path="/thank-you" element={<ThankYouPage />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <DebugBanner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/search-jobs" element={<SearchJobsPage />} />
+            <Route path="/apply/:job_id" element={<ApplyPage />} />
+            <Route path="/apply" element={<ApplyFallback />} />
+            <Route path="/post-job" element={<PostJobPage />} />
+            <Route path="/thank-you" element={<ThankYouPage />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

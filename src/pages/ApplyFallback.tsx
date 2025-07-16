@@ -23,13 +23,25 @@ const ApplyFallback = () => {
     const fetchFeaturedJob = async () => {
       try {
         const { data, error } = await supabase
-          .from('jobs')
+          .from('user_posted_jobs')
           .select('*')
           .limit(1)
           .maybeSingle();
 
         if (error) throw error;
-        setFeaturedJob(data);
+        
+        if (data) {
+          // Transform Supabase data to Job interface
+          const transformedJob: Job = {
+            id: data.id,
+            title: data.job_title || 'Unknown Position',
+            company: data.company || 'Unknown Company',
+            pay_range: '$15-25/hr', // Default since no pay_range field exists
+            location: data.location || 'Remote',
+            description: data.description || 'No description available'
+          };
+          setFeaturedJob(transformedJob);
+        }
       } catch (error) {
         console.error('Error fetching featured job:', error);
       } finally {

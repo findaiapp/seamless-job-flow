@@ -291,11 +291,11 @@ export default function SearchJobsPage() {
     setSubmittingAlert(true);
     try {
       const { error } = await supabase
-        .from('job_alerts')
+        .from('alerts')
         .insert({
           email: alertEmail,
           city: selectedBorough || 'New York',
-          preferred_method: 'email',
+          job_type: 'all',
         });
 
       if (error) throw error;
@@ -467,8 +467,22 @@ export default function SearchJobsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-lg">Loading jobs...</div>
+      <div className="min-h-screen bg-background">
+        {/* Show skeleton header */}
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
+          <div className="flex items-center gap-3 p-4">
+            <div className="w-8 h-8 bg-muted rounded animate-pulse"></div>
+            <div className="flex-1 h-10 bg-muted rounded animate-pulse"></div>
+            <div className="w-10 h-10 bg-muted rounded animate-pulse"></div>
+          </div>
+        </header>
+        
+        <div className="flex items-center justify-center py-16">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <div className="text-lg">Loading jobs...</div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -690,6 +704,35 @@ export default function SearchJobsPage() {
         {!hasMore && filteredJobs.length > 0 && (
           <div className="text-center py-8 text-muted-foreground">
             You've seen all available jobs. Check back later for new postings!
+          </div>
+        )}
+
+        {/* No results fallback */}
+        {!loading && filteredJobs.length === 0 && (
+          <div className="text-center py-16">
+            <div className="mb-4">
+              <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No jobs found</h3>
+              <p className="text-muted-foreground">
+                Try adjusting your search criteria or check back later for new postings.
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSearchTerm("");
+                setSelectedBorough("");
+                setActiveFilters({
+                  highPay: false,
+                  noInterview: false,
+                  quickStart: false,
+                  flexibleShifts: false,
+                  weeklyPay: false,
+                });
+              }}
+            >
+              Clear Filters
+            </Button>
           </div>
         )}
       </div>
