@@ -67,7 +67,7 @@ export default function SearchJobsPage() {
       }
 
       if (filters.highPay) {
-        query = query.gte('salary_min', 20);
+        query = query.or(`salary_min.gte.20,pay_range.ilike.%$2%,pay_range.ilike.%$3%,pay_range.ilike.%$4%,pay_range.ilike.%$5%`);
       }
 
       if (filters.noInterview) {
@@ -201,11 +201,11 @@ export default function SearchJobsPage() {
         ) : jobs.length === 0 ? (
           <div className="text-center py-12">
             <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No jobs found</h3>
+            <h3 className="text-lg font-semibold mb-2">No jobs found in your area</h3>
             <p className="text-muted-foreground mb-4">
               But we'll text you when one comes in
             </p>
-            <Button>Smart Alert</Button>
+            <Button>Refer a friend for $10</Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
