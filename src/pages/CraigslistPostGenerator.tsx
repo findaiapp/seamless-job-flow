@@ -141,7 +141,8 @@ const CraigslistPostGenerator = () => {
           borough: borough,
           job_type: jobType,
           used: true,
-          utm_link: utmLink
+          utm_link: utmLink,
+          posted_at: new Date().toISOString()
         });
 
       if (error) throw error;
