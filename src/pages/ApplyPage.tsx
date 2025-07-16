@@ -73,6 +73,20 @@ const ApplyPage = () => {
 
   const [applicantsToday, setApplicantsToday] = useState(0);
 
+  // Test job auto-apply for debugging
+  const testApply = async () => {
+    setFormData(prev => ({
+      ...prev,
+      fullName: "Test User",
+      phone: "555-0123",
+      email: "test@example.com",
+      skillsDescription: "Test skills and experience",
+      availability: "immediately"
+    }));
+    setCurrentStep(3);
+    setTimeout(() => handleSubmit(), 500);
+  };
+
   // Progress calculation
   const getProgress = (): number => {
     return (currentStep / totalSteps) * 100;
@@ -259,7 +273,8 @@ const ApplyPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (!job_id || !isStepValid(1) || !isStepValid(2)) {
+    // Validate required fields
+    if (!formData.fullName || !formData.phone) {
       toast({
         title: "Missing required fields",
         description: "Please fill in all required fields.",
@@ -271,6 +286,13 @@ const ApplyPage = () => {
     setSubmitting(true);
     
     try {
+      // Validate session first
+      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        throw new Error('Please log in to apply.');
+      }
+
       let resumeUrl = null;
       if (formData.resume) {
         resumeUrl = await uploadResume(formData.resume);
@@ -292,16 +314,15 @@ const ApplyPage = () => {
       const utmSource = urlParams.get('utm_source') || '';
       const utmCampaign = urlParams.get('utm_campaign') || '';
       const utmMedium = urlParams.get('utm_medium') || '';
-      const refParam = urlParams.get('ref') || '';
       
-      // Insert application with UTM tracking
+      // Insert application with proper user_id and error handling
       const { data: applicationData, error: appError } = await supabase
         .from('applications')
         .insert({
           job_id: job_id,
           name: formData.fullName,
           phone: formData.phone,
-          email: formData.email,
+          email: formData.email || currentUser?.email || '',
           location: formData.location,
           position_applied_for: formData.positionApplyingFor,
           why_you: formData.whyYou,
@@ -312,10 +333,7 @@ const ApplyPage = () => {
           company_name: job?.company || '',
           job_title: job?.title || '',
           ref_source: formData.howHeard,
-          // UTM tracking fields (if they exist in your schema)
-          utm_source: utmSource,
-          utm_campaign: utmCampaign,
-          utm_medium: utmMedium,
+          seeker_id: currentUser?.id || null,
         })
         .select()
         .single();
@@ -327,37 +345,37 @@ const ApplyPage = () => {
         await supabase.from('referral_tracking').insert({
           referral_code: referralCode,
           referral_type: 'job_application',
-          referrer_id: '00000000-0000-0000-0000-000000000000', // anonymous
+          referrer_id: '00000000-0000-0000-0000-000000000000',
           referred_id: applicationData.id
         });
       }
 
       // Record application in applied_jobs table
-      if (user?.id) {
-        await recordApplication(job_id, user.id);
+      if (currentUser?.id) {
+        await recordApplication(job_id, currentUser.id);
       }
 
       // Clear saved data
       localStorage.removeItem('apply_prefill_data');
       
-      // Show success animation
+      // Show success state
       setShowSuccess(true);
       
-      // Enhanced completion with success animation
+      // Show success toast
       toast({
-        title: "You're in the loop! 👀",
-        description: "We'll text/email you if you're a match.",
+        title: "✅ Application submitted!",
+        description: "You'll hear back soon.",
       });
       
-      // Redirect after animation
+      // Redirect after 2 seconds to show success state
       setTimeout(() => {
-        navigate('/search-jobs');
+        navigate('/search-jobs?applied=1');
       }, 2000);
       
     } catch (error: any) {
       console.error('Submission error:', error);
       
-      // Check for duplicate application
+      // Smart error handling
       if (error.message?.includes('duplicate') || error.code === '23505') {
         toast({
           title: "Already applied!",
@@ -367,9 +385,30 @@ const ApplyPage = () => {
         return;
       }
       
+      // Auth-specific errors
+      if (error.message?.includes('log in') || error.message?.includes('auth')) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to apply.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Data validation errors
+      if (error.message?.includes('required') || error.message?.includes('validation')) {
+        toast({
+          title: "Invalid data",
+          description: "Please fill in all required fields.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Generic error fallback
       toast({
-        title: "Error",
-        description: "Failed to submit application. Please try again.",
+        title: "Something went wrong",
+        description: "Something went wrong. Try again later.",
         variant: "destructive",
       });
     } finally {
@@ -462,8 +501,22 @@ const ApplyPage = () => {
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold">Apply Now</h1>
-            <Button variant="outline" size="sm" onClick={() => window.history.back()}>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold">Apply Now</h1>
+              {/* Debug Test Button */}
+              {process.env.NODE_ENV === 'development' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={testApply}
+                  className="text-xs opacity-50 hover:opacity-100"
+                >
+                  Test Apply
+                </Button>
+              )}
+            </div>
+            <Button variant="outline" size="sm" onClick={() => navigate('/search-jobs')}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Button>
           </div>
@@ -829,11 +882,27 @@ const ApplyPage = () => {
               ) : (
                 <Button
                   onClick={handleSubmit}
-                  disabled={submitting || !isStepValid(1) || !isStepValid(2)}
-                  className="flex items-center gap-2"
+                  disabled={submitting || !formData.fullName || !formData.phone || showSuccess}
+                  className={`flex items-center gap-2 transition-all ${
+                    showSuccess ? 'bg-green-600 hover:bg-green-600' : ''
+                  }`}
                 >
-                  <CheckCircle className="h-4 w-4" />
-                  {submitting ? "Submitting..." : "Submit Application"}
+                  {showSuccess ? (
+                    <>
+                      <CheckCircle className="h-4 w-4" />
+                      Success!
+                    </>
+                  ) : submitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4" />
+                      Submit Application
+                    </>
+                  )}
                 </Button>
               )}
             </div>
@@ -912,15 +981,31 @@ const ApplyPage = () => {
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur border-t p-4">
         <div className="container mx-auto max-w-2xl">
           <div className="flex gap-3">
-            {/* Quick Apply Button */}
+            {/* Quick Apply Button - Bulletproof */}
             <Button 
               onClick={handleSubmit}
-              disabled={submitting || !isStepValid(1) || !isStepValid(2)}
-              className="flex-1 h-12 text-base font-medium"
+              disabled={submitting || !formData.fullName || !formData.phone || showSuccess}
+              className={`flex-1 h-12 text-base font-medium transition-all ${
+                showSuccess ? 'bg-green-600 hover:bg-green-600' : ''
+              }`}
               size="lg"
             >
-              <Zap className="h-4 w-4 mr-2" />
-              {submitting ? "Applying..." : "Quick Apply"}
+              {showSuccess ? (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Success!
+                </>
+              ) : submitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Zap className="h-4 w-4 mr-2" />
+                  Quick Apply
+                </>
+              )}
             </Button>
             
             {/* Save Job Button */}
