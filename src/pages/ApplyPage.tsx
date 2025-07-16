@@ -47,8 +47,10 @@ const ApplyPage = () => {
     location: "",
     
     // Step 2: Skills & Availability  
+    positionApplyingFor: "",
     experience: "",
     skills: "",
+    skillsDescription: "",
     availability: "",
     whyYou: "",
     resume: null as File | null,
@@ -57,6 +59,8 @@ const ApplyPage = () => {
     howHeard: "",
     referralSource: "",
   });
+
+  const [applicantsToday, setApplicantsToday] = useState(0);
 
   // Progress calculation
   const getProgress = (): number => {
@@ -69,12 +73,23 @@ const ApplyPage = () => {
       case 1:
         return !!(formData.fullName && formData.phone && formData.email);
       case 2:
-        return !!(formData.whyYou && formData.availability);
+        return !!(formData.skillsDescription && formData.availability);
       case 3:
         return true; // Optional fields
       default:
         return false;
     }
+  };
+
+  // Get today's application count
+  const getTodayApplicationCount = async (jobId: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    const { count } = await supabase
+      .from('applications')
+      .select('*', { count: 'exact', head: true })
+      .eq('job_id', jobId)
+      .gte('created_at', today);
+    return count || 0;
   };
 
   // Smart prefill logic for Craigslist
@@ -152,6 +167,16 @@ const ApplyPage = () => {
             created_at: data.created_at
           };
           setJob(transformedJob);
+          
+          // Auto-fill position applying for
+          setFormData(prev => ({ 
+            ...prev, 
+            positionApplyingFor: transformedJob.title 
+          }));
+
+          // Get today's application count
+          const count = await getTodayApplicationCount(job_id);
+          setApplicantsToday(count);
         }
       } catch (error) {
         console.error('Error fetching job:', error);
@@ -258,8 +283,9 @@ const ApplyPage = () => {
           phone: formData.phone,
           email: formData.email,
           location: formData.location,
+          position_applied_for: formData.positionApplyingFor,
           why_you: formData.whyYou,
-          skills_description: formData.skills,
+          skills_description: formData.skillsDescription,
           availability: formData.availability,
           resume_url: resumeUrl,
           referral_code: referralCode,
@@ -291,15 +317,26 @@ const ApplyPage = () => {
       
       // Enhanced completion routing to /search-jobs
       toast({
-        title: "✅ Application received!",
-        description: "Browse open roles while you wait.",
+        title: "You're in the loop! 👀",
+        description: "We'll text/email you if you're a match.",
       });
       
       // Redirect to search-jobs instead of thank-you
       navigate('/search-jobs');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Submission error:', error);
+      
+      // Check for duplicate application
+      if (error.message?.includes('duplicate') || error.code === '23505') {
+        toast({
+          title: "Already applied!",
+          description: "Looks like you've already applied! Browse more jobs below.",
+        });
+        navigate('/search-jobs');
+        return;
+      }
+      
       toast({
         title: "Error",
         description: "Failed to submit application. Please try again.",
@@ -460,7 +497,19 @@ const ApplyPage = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">{job?.description}</p>
+            <p className="text-sm text-muted-foreground mb-4">{job?.description}</p>
+            
+            {/* Applicants Today Counter */}
+            {applicantsToday > 0 && (
+              <div className="flex items-center gap-2 p-3 bg-primary/10 text-primary rounded-lg border border-primary/20">
+                <span className="text-sm font-medium">
+                  👀 {applicantsToday} people applied today for this job!
+                  {applicantsToday > 10 && (
+                    <span className="ml-1 animate-pulse">🔥</span>
+                  )}
+                </span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -520,7 +569,41 @@ const ApplyPage = () => {
             {currentStep === 2 && (
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">Why are you a great fit? *</label>
+                  <label className="text-sm font-medium">Position Applying For</label>
+                  <Select 
+                    value={formData.positionApplyingFor} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, positionApplyingFor: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select position" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={job?.title || ""}>{job?.title}</SelectItem>
+                      <SelectItem value="Delivery Driver">Delivery Driver</SelectItem>
+                      <SelectItem value="Kitchen Staff">Kitchen Staff</SelectItem>
+                      <SelectItem value="Front Desk">Front Desk</SelectItem>
+                      <SelectItem value="Customer Service">Customer Service</SelectItem>
+                      <SelectItem value="Sales Associate">Sales Associate</SelectItem>
+                      <SelectItem value="Cook">Cook</SelectItem>
+                      <SelectItem value="Server">Server</SelectItem>
+                      <SelectItem value="Childcare">Childcare</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Tell us about your skills *</label>
+                  <Textarea
+                    required
+                    value={formData.skillsDescription}
+                    onChange={(e) => setFormData(prev => ({ ...prev, skillsDescription: e.target.value }))}
+                    placeholder="List past experience, certifications, languages, etc."
+                    rows={4}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Why are you a great fit?</label>
                   <div className="flex gap-2 mb-2">
                     <Button
                       type="button"
@@ -535,20 +618,9 @@ const ApplyPage = () => {
                     </Button>
                   </div>
                   <Textarea
-                    required
                     value={formData.whyYou}
                     onChange={(e) => setFormData(prev => ({ ...prev, whyYou: e.target.value }))}
                     placeholder="Tell us why you're perfect for this role..."
-                    rows={4}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Relevant Skills</label>
-                  <Textarea
-                    value={formData.skills}
-                    onChange={(e) => setFormData(prev => ({ ...prev, skills: e.target.value }))}
-                    placeholder="List your relevant skills and experience..."
                     rows={3}
                   />
                 </div>
@@ -723,6 +795,24 @@ const ApplyPage = () => {
                   {submitting ? "Submitting..." : "Submit Application"}
                 </Button>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Trust Boost Section */}
+        <Card className="mt-6 border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <Shield className="h-5 w-5 text-muted-foreground mt-0.5" />
+              <div>
+                <div className="text-sm font-medium text-foreground mb-1">
+                  🔒 Your info is secure.
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  We use your application ONLY to connect you with employers on Hireloop. 
+                  You'll never be spammed or auto-charged.
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
