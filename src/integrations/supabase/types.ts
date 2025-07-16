@@ -15552,6 +15552,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_alerts: {
+        Row: {
+          categories: string[]
+          created_at: string
+          frequency: string
+          id: string
+          is_active: boolean
+          location: string
+          pay_max: number
+          pay_min: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          categories?: string[]
+          created_at?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          location: string
+          pay_max?: number
+          pay_min?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          categories?: string[]
+          created_at?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          location?: string
+          pay_max?: number
+          pay_min?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_analytics: {
         Row: {
           created_at: string
