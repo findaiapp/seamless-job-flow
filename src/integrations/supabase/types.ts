@@ -941,11 +941,16 @@ export type Database = {
           position_applied_for: string | null
           preferred_company: string | null
           ref_source: string | null
+          referral_code: string | null
+          resume_url: string | null
+          role: string | null
           seeker_id: string | null
           skills_description: string | null
           status: string | null
           submitted_at: string | null
           updated_at: string | null
+          user_input: string | null
+          why_you: string | null
         }
         Insert: {
           ai_generated?: boolean | null
@@ -965,11 +970,16 @@ export type Database = {
           position_applied_for?: string | null
           preferred_company?: string | null
           ref_source?: string | null
+          referral_code?: string | null
+          resume_url?: string | null
+          role?: string | null
           seeker_id?: string | null
           skills_description?: string | null
           status?: string | null
           submitted_at?: string | null
           updated_at?: string | null
+          user_input?: string | null
+          why_you?: string | null
         }
         Update: {
           ai_generated?: boolean | null
@@ -989,11 +999,16 @@ export type Database = {
           position_applied_for?: string | null
           preferred_company?: string | null
           ref_source?: string | null
+          referral_code?: string | null
+          resume_url?: string | null
+          role?: string | null
           seeker_id?: string | null
           skills_description?: string | null
           status?: string | null
           submitted_at?: string | null
           updated_at?: string | null
+          user_input?: string | null
+          why_you?: string | null
         }
         Relationships: []
       }
