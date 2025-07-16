@@ -141,7 +141,7 @@ const CraigslistPostGenerator = () => {
           job_type: jobType,
           used: true,
           utm_link: utmLink
-        });
+        } as any);
 
       if (error) throw error;
 
