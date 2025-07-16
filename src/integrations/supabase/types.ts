@@ -4777,6 +4777,8 @@ export type Database = {
           active: boolean | null
           applications: number | null
           auto_repost: boolean | null
+          body: string | null
+          borough: string | null
           city_code: string | null
           clicks: number | null
           craigslist_url: string | null
@@ -4784,6 +4786,7 @@ export type Database = {
           fatigue_flagged: boolean | null
           flagged: boolean | null
           id: string
+          job_type: string | null
           last_repost_at: string | null
           last_reposted_at: string | null
           next_repost_date: string | null
@@ -4793,7 +4796,10 @@ export type Database = {
           repost_count: number | null
           repost_frequency_days: number | null
           test_id: string | null
+          title: string | null
           updated_at: string
+          used: boolean | null
+          utm_link: string | null
           variant: string
           views_count: number | null
         }
@@ -4801,6 +4807,8 @@ export type Database = {
           active?: boolean | null
           applications?: number | null
           auto_repost?: boolean | null
+          body?: string | null
+          borough?: string | null
           city_code?: string | null
           clicks?: number | null
           craigslist_url?: string | null
@@ -4808,6 +4816,7 @@ export type Database = {
           fatigue_flagged?: boolean | null
           flagged?: boolean | null
           id?: string
+          job_type?: string | null
           last_repost_at?: string | null
           last_reposted_at?: string | null
           next_repost_date?: string | null
@@ -4817,7 +4826,10 @@ export type Database = {
           repost_count?: number | null
           repost_frequency_days?: number | null
           test_id?: string | null
+          title?: string | null
           updated_at?: string
+          used?: boolean | null
+          utm_link?: string | null
           variant: string
           views_count?: number | null
         }
@@ -4825,6 +4837,8 @@ export type Database = {
           active?: boolean | null
           applications?: number | null
           auto_repost?: boolean | null
+          body?: string | null
+          borough?: string | null
           city_code?: string | null
           clicks?: number | null
           craigslist_url?: string | null
@@ -4832,6 +4846,7 @@ export type Database = {
           fatigue_flagged?: boolean | null
           flagged?: boolean | null
           id?: string
+          job_type?: string | null
           last_repost_at?: string | null
           last_reposted_at?: string | null
           next_repost_date?: string | null
@@ -4841,7 +4856,10 @@ export type Database = {
           repost_count?: number | null
           repost_frequency_days?: number | null
           test_id?: string | null
+          title?: string | null
           updated_at?: string
+          used?: boolean | null
+          utm_link?: string | null
           variant?: string
           views_count?: number | null
         }

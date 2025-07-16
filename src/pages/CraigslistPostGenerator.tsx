@@ -70,19 +70,13 @@ const CraigslistPostGenerator = () => {
 
     setIsGenerating(true);
     try {
-      const response = await fetch('/api/generate-craigslist-post', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ borough, jobType }),
+      const { data, error } = await supabase.functions.invoke('generate-craigslist-post', {
+        body: { borough, jobType },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate post');
+      if (error) {
+        throw new Error(error.message || 'Failed to generate post');
       }
-
-      const data = await response.json();
       setTitle(data.title);
       setBody(data.body);
       
@@ -140,12 +134,15 @@ const CraigslistPostGenerator = () => {
       const { error } = await supabase
         .from('craigslist_posts')
         .insert({
+          variant: 'generator',
           title,
           body,
           borough,
           job_type: jobType,
           used: true,
-          utm_link: utmLink
+          utm_link: utmLink,
+          active: true,
+          city_code: city
         });
 
       if (error) throw error;

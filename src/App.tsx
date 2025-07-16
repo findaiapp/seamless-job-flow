@@ -9,6 +9,7 @@ import ApplyPage from "./pages/ApplyPage";
 import ApplyFallback from "./pages/ApplyFallback";
 import PostJobPage from "./pages/PostJobPage";
 import ThankYouPage from "./pages/ThankYouPage";
+import CraigslistPostGenerator from "./pages/CraigslistPostGenerator";
 import NotFound from "./pages/NotFound";
 import DebugBanner from "./components/DebugBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/apply/:job_id" element={<ApplyPage />} />
             <Route path="/apply" element={<ApplyFallback />} />
             <Route path="/post-job" element={<PostJobPage />} />
+            <Route path="/craigslist-generator" element={<CraigslistPostGenerator />} />
             <Route path="/thank-you" element={<ThankYouPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
