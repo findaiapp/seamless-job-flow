@@ -131,8 +131,8 @@ const CraigslistPostGenerator = () => {
     try {
       const utmLink = `https://hireloop.ai/apply?job=${jobType.toLowerCase().replace(' ', '-')}&city=${city.toLowerCase()}&ref=craigslist`;
       
-      // Use type assertion to bypass TypeScript checking
-      const { error } = await (supabase as any)
+      // Insert the generated post into the database
+      const { error } = await supabase
         .from('craigslist_posts')
         .insert({
           variant: 'generator',
