@@ -1012,6 +1012,30 @@ export type Database = {
         }
         Relationships: []
       }
+      applied_jobs: {
+        Row: {
+          applied_at: string
+          created_at: string
+          id: string
+          job_id: string
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string
+          created_at?: string
+          id?: string
+          job_id: string
+          user_id: string
+        }
+        Update: {
+          applied_at?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       apply_queue: {
         Row: {
           company_name: string

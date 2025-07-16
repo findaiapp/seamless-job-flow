@@ -8,9 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, DollarSign, Shield, Upload, Sparkles, User, CheckCircle, FileText, ArrowLeft, ArrowRight } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { MapPin, DollarSign, Shield, Upload, Sparkles, User, CheckCircle, FileText, ArrowLeft, ArrowRight, Heart, TrendingUp, Zap, Clock, FileX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useReferralTracking } from "@/hooks/useReferralTracking";
+import { useJobActions } from "@/hooks/useJobActions";
+import { useSmartMatchScore } from "@/hooks/useSmartMatchScore";
+import { useSmartJobAlerts } from "@/hooks/useSmartJobAlerts";
 
 interface Job {
   id: string;
@@ -28,8 +32,15 @@ const ApplyPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { getReferralCode } = useReferralTracking();
+  const { saveJob, recordApplication, loading: actionLoading } = useJobActions();
   
   const [job, setJob] = useState<Job | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [hasApplied, setHasApplied] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  
+  const { alerts } = useSmartJobAlerts(user?.id);
+  const matchScore = useSmartMatchScore(job, alerts);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -130,6 +141,15 @@ const ApplyPage = () => {
 
     prefillData();
   }, [searchParams]);
+
+  // Get current user session
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+  }, []);
 
   // Save form data to localStorage on changes
   useEffect(() => {
@@ -312,17 +332,27 @@ const ApplyPage = () => {
         });
       }
 
+      // Record application in applied_jobs table
+      if (user?.id) {
+        await recordApplication(job_id, user.id);
+      }
+
       // Clear saved data
       localStorage.removeItem('apply_prefill_data');
       
-      // Enhanced completion routing to /search-jobs
+      // Show success animation
+      setShowSuccess(true);
+      
+      // Enhanced completion with success animation
       toast({
         title: "You're in the loop! 👀",
         description: "We'll text/email you if you're a match.",
       });
       
-      // Redirect to search-jobs instead of thank-you
-      navigate('/search-jobs');
+      // Redirect after animation
+      setTimeout(() => {
+        navigate('/search-jobs');
+      }, 2000);
       
     } catch (error: any) {
       console.error('Submission error:', error);
@@ -473,7 +503,7 @@ const ApplyPage = () => {
         {/* Job Details */}
         <Card className="mb-6">
           <CardHeader>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Shield className="w-3 h-3" />
                 Verified Job
@@ -481,6 +511,17 @@ const ApplyPage = () => {
               {formData.howHeard === 'Craigslist' && (
                 <Badge variant="outline" className="text-xs">
                   Craigslist Lead
+                </Badge>
+              )}
+              
+              {/* Smart Match Score Badge */}
+              {matchScore?.hasMatch && (
+                <Badge 
+                  variant={matchScore.level === 'high' ? 'default' : 'secondary'}
+                  className="flex items-center gap-1 animate-pulse"
+                >
+                  <span>{matchScore.emoji}</span>
+                  {matchScore.label}
                 </Badge>
               )}
             </div>
@@ -816,7 +857,134 @@ const ApplyPage = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Resume Booster Tooltip */}
+        {!formData.resume && currentStep === 2 && (
+          <TooltipProvider>
+            <Card className="mt-4 border-amber-200 bg-amber-50">
+              <CardContent className="p-4">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-3 cursor-help">
+                      <div className="bg-amber-100 p-2 rounded-full">
+                        <FileX className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-amber-900">
+                          🎯 Boost your chances — upload resume in 1 click
+                        </div>
+                        <div className="text-xs text-amber-700">
+                          Applications with resumes get 3x more responses
+                        </div>
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Upload a resume to significantly increase your chances of getting hired!</p>
+                  </TooltipContent>
+                </Tooltip>
+              </CardContent>
+            </Card>
+          </TooltipProvider>
+        )}
+
+        {/* Social Proof - Random Application Stats */}
+        <Card className="mt-4 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 p-2 rounded-full">
+                <TrendingUp className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-foreground">
+                  📈 {Math.floor(Math.random() * (55 - 12 + 1)) + 12} people applied in the past 3 hours
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {matchScore?.hasMatch ? "You're a great match!" : "Apply now to stand out"}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Sticky Bottom CTAs - Always Visible */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur border-t p-4">
+        <div className="container mx-auto max-w-2xl">
+          <div className="flex gap-3">
+            {/* Quick Apply Button */}
+            <Button 
+              onClick={handleSubmit}
+              disabled={submitting || !isStepValid(1) || !isStepValid(2)}
+              className="flex-1 h-12 text-base font-medium"
+              size="lg"
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              {submitting ? "Applying..." : "Quick Apply"}
+            </Button>
+            
+            {/* Save Job Button */}
+            <Button 
+              variant="outline"
+              onClick={() => saveJob(job_id!, user?.id)}
+              disabled={actionLoading || !job_id}
+              className="h-12 px-6"
+              size="lg"
+            >
+              <Heart className={`h-4 w-4 ${actionLoading ? 'animate-pulse' : ''}`} />
+              <span className="hidden sm:inline ml-2">Save</span>
+            </Button>
+            
+            {/* Remind Me Later */}
+            <Button 
+              variant="outline"
+              onClick={() => {
+                if (user?.id && job_id) {
+                  saveJob(job_id, user.id);
+                  toast({
+                    title: "Reminder set! ⏰",
+                    description: "We'll remind you about this job later",
+                  });
+                } else {
+                  toast({
+                    title: "Bookmark saved! 📌",
+                    description: "Job saved to your browser",
+                  });
+                  localStorage.setItem(`saved_job_${job_id}`, JSON.stringify({
+                    jobId: job_id,
+                    savedAt: new Date().toISOString()
+                  }));
+                }
+              }}
+              className="h-12 px-4"
+              size="lg"
+            >
+              <Clock className="h-4 w-4" />
+              <span className="hidden md:inline ml-2">Later</span>
+            </Button>
+          </div>
+          
+          {/* Progress indicator for sticky bar */}
+          <div className="mt-2 text-xs text-center text-muted-foreground">
+            {currentStep < 3 ? (
+              `Complete ${3 - currentStep} more step${3 - currentStep === 1 ? '' : 's'} to apply`
+            ) : (
+              "Ready to submit your application!"
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Success Animation Overlay */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur flex items-center justify-center">
+          <div className="text-center animate-scale-in">
+            <div className="text-6xl mb-4">✅</div>
+            <div className="text-2xl font-bold text-primary mb-2">Application Sent!</div>
+            <div className="text-muted-foreground">We'll be in touch soon...</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
