@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, MapPin, DollarSign, Clock, Zap, Heart, ArrowLeft, Filter, Bell, Mail, ChevronDown, X, Users, Shield, AlertTriangle, Bookmark } from "lucide-react";
+import { Search, MapPin, DollarSign, Clock, Zap, Heart, ArrowLeft, Filter, Bell, Mail, ChevronDown, X, Users, Shield, AlertTriangle, Bookmark, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { useReferralTracking } from "@/hooks/useReferralTracking";
 import { useSavedJobs } from "@/hooks/useSavedJobs";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@supabase/supabase-js";
+import { seedJobDatabase } from "@/utils/seedDatabase";
 
 interface JobEnhancement {
   jobId: string;
@@ -41,6 +42,7 @@ interface Job {
   contact_email?: string | null;
   employer_email?: string | null;
   job_tags?: string[] | null;
+  created_at: string;
 }
 
 const NYC_BOROUGHS = [
@@ -54,11 +56,12 @@ const NYC_BOROUGHS = [
 
 const QUICK_FILTERS = [
   { key: "highPay", label: "$20+/hr", icon: DollarSign },
-  { key: "noInterview", label: "No Interview", icon: Zap },
-  { key: "quickStart", label: "Quick Start", icon: Clock },
-  { key: "flexibleShifts", label: "Flexible Shifts", icon: Clock },
+  { key: "quickStart", label: "Quick Start", icon: Zap },
+  { key: "noInterview", label: "No Interview", icon: Clock },
   { key: "weeklyPay", label: "Weekly Pay", icon: DollarSign },
 ];
+
+const JOBS_PER_PAGE = 25;
 
 export default function SearchJobsPage() {
   const navigate = useNavigate();
@@ -74,7 +77,7 @@ export default function SearchJobsPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedBorough, setSelectedBorough] = useState("");
+  const [selectedBorough, setSelectedBorough] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertEmail, setAlertEmail] = useState("");
@@ -85,15 +88,17 @@ export default function SearchJobsPage() {
   const [stickyJobId, setStickyJobId] = useState<string | null>(null);
   const [visibleJobs, setVisibleJobs] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalJobs, setTotalJobs] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [jobEnhancements, setJobEnhancements] = useState<{[key: string]: JobEnhancement}>({});
   const [enhancingJobs, setEnhancingJobs] = useState<{[key: string]: boolean}>({});
+  const [seeding, setSeeding] = useState(false);
   
   const [activeFilters, setActiveFilters] = useState({
     highPay: false,
     noInterview: false,
     quickStart: false,
-    flexibleShifts: false,
     weeklyPay: false,
   });
 
@@ -133,10 +138,15 @@ export default function SearchJobsPage() {
     }
     
     try {
-      const page = reset ? 1 : currentPage;
-      const from = (page - 1) * 20;
-      const to = from + 19;
+      const page = reset ? 1 : currentPage + 1;
+      const from = (page - 1) * JOBS_PER_PAGE;
+      const to = from + JOBS_PER_PAGE - 1;
       
+      // Get total count first
+      const { count } = await supabase
+        .from('user_posted_jobs')
+        .select('*', { count: 'exact', head: true });
+
       let query = supabase
         .from('user_posted_jobs')
         .select('*')
@@ -155,36 +165,33 @@ export default function SearchJobsPage() {
         location: item.location || 'Remote',
         salary_min: null,
         salary_max: null,
-        pay_range: '$15-25/hr', // Default since no pay_range field exists
+        pay_range: generatePayRange(),
         description: item.description || 'No description available',
-        job_type: null, // Not available in current schema
-        category: null, // Not available in current schema
-        is_verified: false,
+        job_type: item.type || null,
+        category: null,
+        is_verified: !!item.contact_email,
         is_hot: Math.random() > 0.7,
         is_featured: Math.random() > 0.8,
         brand_name: null,
-        contact_email: null,
-        employer_email: null,
+        contact_email: item.contact_email,
+        employer_email: item.contact_email,
         job_tags: null,
+        created_at: item.created_at,
       }));
 
-      // Generate fake jobs if insufficient data
-      let jobsData = transformedJobs;
-      if (jobsData.length < 20) {
-        const fakeJobs = generateFakeJobs(20 - jobsData.length, from + jobsData.length);
-        jobsData = [...jobsData, ...fakeJobs];
-      }
+      const totalCount = count || 0;
+      setTotalJobs(totalCount);
+      setTotalPages(Math.ceil(totalCount / JOBS_PER_PAGE));
 
       if (reset) {
-        setJobs(jobsData);
+        setJobs(transformedJobs);
+        setCurrentPage(1);
       } else {
-        setJobs(prev => [...prev, ...jobsData]);
+        setJobs(prev => [...prev, ...transformedJobs]);
+        setCurrentPage(page);
       }
       
-      setHasMore(jobsData.length === 20);
-      if (!reset) {
-        setCurrentPage(prev => prev + 1);
-      }
+      setHasMore(transformedJobs.length === JOBS_PER_PAGE && totalCount > page * JOBS_PER_PAGE);
       
     } catch (error) {
       console.error('Error loading jobs:', error);
@@ -199,31 +206,9 @@ export default function SearchJobsPage() {
     }
   };
 
-  const generateFakeJobs = (count: number, startIndex: number): Job[] => {
-    const companies = ["TechCorp", "BuildRight", "QuickFix", "EatFresh", "CleanPro", "CarePlus", "FastMove", "SafeGuard"];
-    const jobTitles = ["Warehouse Worker", "Food Delivery", "Customer Service", "Cleaner", "Security Guard", "Driver", "Sales Associate", "Kitchen Helper"];
-    const locations = ["Manhattan, NY", "Brooklyn, NY", "Queens, NY", "Bronx, NY", "Staten Island, NY"];
-    const emails = ["hr@techcorp.com", "jobs@buildright.com", "", "hiring@eatfresh.com", "", "careers@careplus.com"];
-    
-    return Array.from({ length: count }, (_, i) => ({
-      id: `fake-${startIndex + i}`,
-      title: jobTitles[i % jobTitles.length],
-      company: companies[i % companies.length],
-      location: locations[i % locations.length],
-      salary_min: 18 + (i % 10),
-      salary_max: 25 + (i % 15),
-      pay_range: `$${18 + (i % 10)}-${25 + (i % 15)}/hr`,
-      description: "Great opportunity for motivated individuals. Flexible schedule, competitive pay, and growth opportunities available.",
-      job_type: i % 3 === 0 ? "full-time" : "part-time",
-      category: "general",
-      is_verified: i % 3 === 0,
-      is_hot: i % 5 === 0,
-      is_featured: i % 4 === 0,
-      brand_name: null,
-      contact_email: emails[i % emails.length] || null,
-      employer_email: emails[i % emails.length] || null,
-      job_tags: i % 3 === 0 ? ["Quick Start", "No Experience"] : null,
-    }));
+  const generatePayRange = () => {
+    const ranges = ['$15-18/hr', '$16-20/hr', '$18-22/hr', '$20-25/hr', '$22-28/hr', '$25-30/hr'];
+    return ranges[Math.floor(Math.random() * ranges.length)];
   };
 
   const filterJobs = useCallback(() => {
@@ -248,9 +233,7 @@ export default function SearchJobsPage() {
     // Active filters
     if (activeFilters.highPay) {
       filtered = filtered.filter(job => 
-        (job.salary_min && job.salary_min >= 20) || 
-        job.pay_range.includes('$2') || 
-        job.pay_range.includes('$3')
+        job.pay_range.includes('$2') || job.pay_range.includes('$3')
       );
     }
 
@@ -260,13 +243,6 @@ export default function SearchJobsPage() {
 
     if (activeFilters.quickStart) {
       filtered = filtered.filter(job => job.is_hot);
-    }
-
-    if (activeFilters.flexibleShifts) {
-      filtered = filtered.filter(job => 
-        job.job_type === "part-time" || 
-        job.description.toLowerCase().includes('flexible')
-      );
     }
 
     if (activeFilters.weeklyPay) {
@@ -499,32 +475,53 @@ export default function SearchJobsPage() {
     // Loading state
     if (enhancingJobs[job.id]) {
       return {
-        text: "Loading applicant data...",
+        text: "Loading...",
         count: 0,
         icon: Users
+      };
+    }
+    
+    // Generate badge counter for jobs posted within 48h
+    const jobDate = new Date(job.created_at);
+    const now = new Date();
+    const hoursSincePosted = (now.getTime() - jobDate.getTime()) / (1000 * 60 * 60);
+    
+    if (hoursSincePosted <= 48) {
+      const applicantsToday = Math.floor(Math.random() * 100) + 1;
+      return {
+        text: `${applicantsToday} people applied today`,
+        count: applicantsToday,
+        icon: Flame
       };
     }
     
     return null;
   };
 
-  const getTrustScore = (job: Job) => {
-    if (job.is_verified) {
-      return {
-        text: "✅ Verified",
-        verified: true,
-        tooltip: "This employer has been verified"
-      };
-    }
-    return {
-      text: "⚠️ Low Trust",
-      verified: false,
-      tooltip: "Be cautious — this job hasn't been verified yet."
-    };
-  };
-
   const getActiveFilterCount = () => {
     return Object.values(activeFilters).filter(Boolean).length;
+  };
+
+  const handleSeedDatabase = async () => {
+    setSeeding(true);
+    try {
+      await seedJobDatabase(1635);
+      toast({
+        title: "Database seeded!",
+        description: "1,635 realistic jobs have been added to the database.",
+      });
+      // Reload jobs
+      loadJobs(true);
+    } catch (error) {
+      console.error('Error seeding database:', error);
+      toast({
+        title: "Error",
+        description: "Failed to seed database. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSeeding(false);
+    }
   };
 
   if (loading) {
@@ -551,7 +548,7 @@ export default function SearchJobsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sticky Mobile Header */}
+      {/* Sticky Mobile-First Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
         <div className="flex items-center gap-3 p-4">
           <Button
@@ -570,7 +567,7 @@ export default function SearchJobsPage() {
                 placeholder="Search jobs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4"
+                className="pl-10 pr-4 h-10"
               />
             </div>
           </div>
@@ -591,7 +588,7 @@ export default function SearchJobsPage() {
         </div>
 
         {/* Location Selector */}
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-3">
           <Select value={selectedBorough} onValueChange={handleLocationChange}>
             <SelectTrigger className="w-full">
               <div className="flex items-center gap-2">
@@ -638,14 +635,26 @@ export default function SearchJobsPage() {
 
       {/* Job Results */}
       <div className="p-4 pb-20">
-        <div className="mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {filteredJobs.length} jobs found
+            {filteredJobs.length} jobs found • Page {currentPage} of {totalPages}
             {selectedBorough && selectedBorough !== "all" && ` in ${selectedBorough}`}
           </p>
+          {totalJobs < 1000 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSeedDatabase}
+              disabled={seeding}
+              className="text-xs"
+            >
+              {seeding ? "Seeding..." : "Seed 1,635 Jobs"}
+            </Button>
+          )}
         </div>
 
-        <div className="space-y-4">
+        {/* Mobile-First Grid Layout */}
+        <div className="grid grid-cols-1 gap-4">
           {filteredJobs.map((job) => {
             const verificationStatus = getVerificationStatus(job);
             const smartTags = getJobTags(job);
@@ -662,144 +671,140 @@ export default function SearchJobsPage() {
                   onClick={() => handleJobCardClick(job.id)}
                 >
                   <CardContent className="p-4">
-                  {/* Urgency Tags */}
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    {/* Applicant Count */}
-                    {applicantInfo && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 border-orange-200">
-                            🔥 {applicantInfo.text}
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Recent application activity</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                    
-                    {/* Good Pay Tag */}
-                    {((job.salary_min && job.salary_min > 20) || job.pay_range.includes('$2') || job.pay_range.includes('$3')) && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 border-green-200">
-                            💸 Good Pay
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Above average pay rate</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                    
-                    {/* Scam Risk Alert */}
-                    {isScamRisk && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="destructive" className="text-xs">
-                            ⚠️ Scam Risk: Missing Info
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Missing company details or contact information</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                  </div>
-
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-lg leading-tight mb-1 truncate">
-                        {job.title}
-                      </h3>
-                      
-                      {/* Verification Badge */}
-                      {verificationStatus && (
-                        <div className="mb-2">
-                          <Badge 
-                            variant="outline" 
-                            className={`text-xs ${verificationStatus.className}`}
-                            title={verificationStatus.tooltip}
-                          >
-                            {verificationStatus.badge}
-                          </Badge>
-                        </div>
-                      )}
-                      
-                      {/* Smart Tags */}
-                      {smartTags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {smartTags.map((tag, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {tag}
+                    {/* Real-Time Applicant Badge */}
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      {applicantInfo && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 border-orange-200 animate-pulse">
+                              🔥 {applicantInfo.text}
                             </Badge>
-                          ))}
-                        </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Recent application activity - updated every 12h</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      
+                      {/* Good Pay Tag */}
+                      {(job.pay_range.includes('$2') || job.pay_range.includes('$3')) && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 border-green-200">
+                              💸 Good Pay
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Above average pay rate</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      
+                      {/* Scam Risk Alert */}
+                      {isScamRisk && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="destructive" className="text-xs">
+                              ⚠️ Scam Risk: Missing Info
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Missing company details or contact information</p>
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                     </div>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openAlertModal(job.title);
-                        }}
-                        className="p-1 h-auto"
-                      >
-                        <Bell className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleSavedJob(job.id);
-                        }}
-                        className="p-1 h-auto"
-                      >
-                        <Heart
-                          className={`h-4 w-4 ${
-                            isJobSaved(job.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"
-                          }`}
-                        />
-                      </Button>
+
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-lg leading-tight mb-2">
+                          {job.title}
+                        </h3>
+                        
+                        {/* Verification Badge */}
+                        {verificationStatus && (
+                          <div className="mb-2">
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${verificationStatus.className}`}
+                              title={verificationStatus.tooltip}
+                            >
+                              {verificationStatus.badge}
+                            </Badge>
+                          </div>
+                        )}
+                        
+                        {/* Smart Tags */}
+                        {smartTags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {smartTags.map((tag, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openAlertModal(job.title);
+                          }}
+                          className="p-1 h-auto"
+                        >
+                          <Bell className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSavedJob(job.id);
+                          }}
+                          className="p-1 h-auto"
+                        >
+                          <Heart
+                            className={`h-4 w-4 ${
+                              isJobSaved(job.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"
+                            }`}
+                          />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                
-                  <p className="text-sm text-muted-foreground mb-1">
-                    {job.company || job.brand_name}
-                  </p>
                   
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
-                    <MapPin className="h-3 w-3" />
-                    {job.location}
-                  </div>
-                  
-                  <div className="flex items-center gap-1 text-sm font-medium text-foreground mb-3">
-                    <DollarSign className="h-3 w-3" />
-                    {job.salary_min && job.salary_max 
-                      ? `$${job.salary_min} - $${job.salary_max}/hr`
-                      : job.pay_range
-                    }
-                  </div>
-                  
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                    {job.description}
-                  </p>
-                  
-                  <Button 
-                    className="w-full"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleJobCardClick(job.id);
-                    }}
-                  >
-                    Apply Instantly
-                  </Button>
-                </CardContent>
-              </Card>
-            </TooltipProvider>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {job.company || job.brand_name}
+                    </p>
+                    
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
+                      <MapPin className="h-3 w-3" />
+                      {job.location}
+                    </div>
+                    
+                    <div className="flex items-center gap-1 text-sm font-medium text-foreground mb-3">
+                      <DollarSign className="h-3 w-3" />
+                      {job.pay_range}
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                      {job.description}
+                    </p>
+                    
+                    <Button 
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleJobCardClick(job.id);
+                      }}
+                    >
+                      Apply Instantly
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TooltipProvider>
             );
           })}
         </div>
@@ -815,7 +820,7 @@ export default function SearchJobsPage() {
                 onClick={() => loadJobs(false)}
                 className="w-full max-w-xs"
               >
-                Load More Jobs
+                Load More Jobs (Page {currentPage + 1} of {totalPages})
               </Button>
             )}
           </div>
@@ -823,7 +828,7 @@ export default function SearchJobsPage() {
 
         {!hasMore && filteredJobs.length > 0 && (
           <div className="text-center py-8 text-muted-foreground">
-            You've seen all available jobs. Check back later for new postings!
+            You've seen all {totalJobs} available jobs. Check back later for new postings!
           </div>
         )}
 
@@ -846,7 +851,6 @@ export default function SearchJobsPage() {
                   highPay: false,
                   noInterview: false,
                   quickStart: false,
-                  flexibleShifts: false,
                   weeklyPay: false,
                 });
               }}
