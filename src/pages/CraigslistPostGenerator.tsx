@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Wand2, Copy, Save, AlertTriangle, CheckCircle } from "lucide-react";
+import { Wand2, Copy, Save, AlertTriangle, CheckCircle, Target } from "lucide-react";
 
 const CraigslistPostGenerator = () => {
   const [borough, setBorough] = useState('');
@@ -19,7 +19,9 @@ const CraigslistPostGenerator = () => {
   const [zip, setZip] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isScoring, setIsScoring] = useState(false);
   const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
+  const [conversionAnalysis, setConversionAnalysis] = useState(null);
   
   const { toast } = useToast();
 
@@ -166,6 +168,40 @@ const CraigslistPostGenerator = () => {
     }
   };
 
+  const scorePostConversion = async () => {
+    if (!title || !body) {
+      toast({
+        title: "Missing Content",
+        description: "Please generate or enter post content first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsScoring(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('score-post-conversion', {
+        body: { title, body }
+      });
+
+      if (error) throw error;
+
+      setConversionAnalysis(data);
+      toast({
+        title: "Analysis Complete!",
+        description: `Overall score: ${data.overallScore}/100`,
+      });
+    } catch (error) {
+      toast({
+        title: "Scoring Failed",
+        description: "Failed to analyze post conversion potential",
+        variant: "destructive"
+      });
+    } finally {
+      setIsScoring(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -283,6 +319,16 @@ const CraigslistPostGenerator = () => {
                     {isSaving ? "Saving..." : "Mark as Used"}
                   </Button>
                 </div>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={scorePostConversion}
+                  disabled={isScoring || !title || !body}
+                  className="w-full"
+                >
+                  <Target className="h-4 w-4 mr-2" />
+                  {isScoring ? "Scoring..." : "Score Conversion Potential"}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -328,6 +374,87 @@ const CraigslistPostGenerator = () => {
                     ✅ Post looks flag-safe and ready to publish!
                   </AlertDescription>
                 </Alert>
+              )}
+
+              {/* Conversion Analysis */}
+              {conversionAnalysis && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Target className="h-5 w-5" />
+                      Conversion Analysis
+                      <Badge variant={conversionAnalysis.overallScore >= 80 ? 'default' : 
+                                     conversionAnalysis.overallScore >= 60 ? 'secondary' : 'destructive'}>
+                        {conversionAnalysis.overallScore}/100
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Score Breakdown */}
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Urgency & Action:</span>
+                        <Badge variant="outline">{conversionAnalysis.urgencyScore || 0}</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Trust & Safety:</span>
+                        <Badge variant="outline">{conversionAnalysis.trustScore || 0}</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Clear Benefits:</span>
+                        <Badge variant="outline">{conversionAnalysis.benefitsScore || 0}</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Professional Tone:</span>
+                        <Badge variant="outline">{conversionAnalysis.toneScore || 0}</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Call-to-Action:</span>
+                        <Badge variant="outline">{conversionAnalysis.ctaScore || 0}</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Flag Safety:</span>
+                        <Badge variant="outline">{conversionAnalysis.flagSafetyScore || 0}</Badge>
+                      </div>
+                    </div>
+
+                    {/* Feedback */}
+                    <div className="text-sm bg-muted p-3 rounded-md">
+                      <p className="font-medium mb-2">Analysis:</p>
+                      <p>{conversionAnalysis.feedback}</p>
+                    </div>
+
+                    {/* Improvements */}
+                    {conversionAnalysis.improvements && conversionAnalysis.improvements.length > 0 && (
+                      <div>
+                        <p className="font-medium text-sm mb-2">Improvements:</p>
+                        <ul className="text-sm space-y-1">
+                          {conversionAnalysis.improvements.map((improvement, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <span className="text-blue-500">•</span>
+                              <span>{improvement}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Strengths */}
+                    {conversionAnalysis.strengths && conversionAnalysis.strengths.length > 0 && (
+                      <div>
+                        <p className="font-medium text-sm mb-2">Strengths:</p>
+                        <ul className="text-sm space-y-1">
+                          {conversionAnalysis.strengths.map((strength, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <span className="text-green-500">✓</span>
+                              <span>{strength}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               )}
             </CardContent>
           </Card>
