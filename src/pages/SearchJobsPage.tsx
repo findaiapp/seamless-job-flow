@@ -45,6 +45,7 @@ export default function SearchJobsPage() {
   });
   const [alertEmails, setAlertEmails] = useState<{[key: string]: string}>({});
   const [submittingAlert, setSubmittingAlert] = useState<{[key: string]: boolean}>({});
+  const [sortedJobs, setSortedJobs] = useState<Job[]>([]);
 
   useEffect(() => {
     // Check auth state
@@ -78,6 +79,90 @@ export default function SearchJobsPage() {
   useEffect(() => {
     fetchJobs();
   }, [searchTerm, location, filters]);
+
+  // Auto-sort jobs based on relevance
+  useEffect(() => {
+    if (jobs.length > 0) {
+      const sorted = [...jobs].sort((a, b) => {
+        // 1. Exact match to filters (score boost)
+        const aFilterScore = getFilterMatchScore(a);
+        const bFilterScore = getFilterMatchScore(b);
+        if (aFilterScore !== bFilterScore) return bFilterScore - aFilterScore;
+
+        // 2. High pay first
+        const aPayScore = getPayScore(a);
+        const bPayScore = getPayScore(b);
+        if (aPayScore !== bPayScore) return bPayScore - aPayScore;
+
+        // 3. Hot/Featured jobs first
+        const aPriorityScore = (a.is_hot ? 2 : 0) + (a.is_featured ? 1 : 0);
+        const bPriorityScore = (b.is_hot ? 2 : 0) + (b.is_featured ? 1 : 0);
+        return bPriorityScore - aPriorityScore;
+      });
+      setSortedJobs(sorted);
+    } else {
+      setSortedJobs([]);
+    }
+  }, [jobs, filters]);
+
+  // Helper functions for scoring
+  const getFilterMatchScore = (job: Job): number => {
+    let score = 0;
+    if (filters.highPay) {
+      const minSalary = job.salary_min || 0;
+      const payRangeHigh = job.pay_range.includes('$2') || job.pay_range.includes('$3') || job.pay_range.includes('$4') || job.pay_range.includes('$5');
+      if (minSalary >= 20 || payRangeHigh) score += 3;
+    }
+    if (filters.noInterview && job.is_featured) score += 2;
+    if (filters.quickStart && job.is_hot) score += 2;
+    return score;
+  };
+
+  const getPayScore = (job: Job): number => {
+    if (job.salary_min && job.salary_max) {
+      return (job.salary_min + job.salary_max) / 2;
+    }
+    // Estimate from pay_range string
+    const range = job.pay_range.toLowerCase();
+    if (range.includes('$50+') || range.includes('$60+')) return 50;
+    if (range.includes('$40+') || range.includes('$45+')) return 40;
+    if (range.includes('$30+') || range.includes('$35+')) return 30;
+    if (range.includes('$20+') || range.includes('$25+')) return 20;
+    return 15; // default
+  };
+
+  const getMatchTags = (job: Job): string[] => {
+    const tags: string[] = [];
+    
+    // Check if similar to saved jobs
+    if (user && getSavedJobsCount() > 0) {
+      tags.push("🔥 Similar to your saved jobs");
+    }
+    
+    // Check filter matches
+    const filterScore = getFilterMatchScore(job);
+    if (filterScore > 0) {
+      tags.push("🎯 Matches your filters");
+    }
+    
+    // Check if remote (assuming from location or description)
+    if (job.location.toLowerCase().includes('remote') || job.description.toLowerCase().includes('remote')) {
+      tags.push("🌍 Remote Friendly");
+    }
+    
+    return tags.slice(0, 2); // Max 2 tags
+  };
+
+  const getTrustScore = (job: Job): { verified: boolean; text: string; tooltip?: string } => {
+    if (job.is_verified) {
+      return { verified: true, text: "✅ Verified" };
+    }
+    return { 
+      verified: false, 
+      text: "⚠️ Low Trust", 
+      tooltip: "Be cautious — this job hasn't been verified yet." 
+    };
+  };
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -236,11 +321,40 @@ export default function SearchJobsPage() {
             </Button>
           </div>
 
-          <div className="flex justify-between items-center">
-            <Button variant="ghost" size="sm" className="flex items-center gap-1">
-              <Heart className="h-4 w-4" />
-              Saved Jobs ({getSavedJobsCount()})
-            </Button>
+          {/* Active Filter Chips */}
+          {(filters.highPay || filters.noInterview || filters.quickStart) && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              <span className="text-sm text-muted-foreground">Active filters:</span>
+              {filters.highPay && (
+                <Badge variant="secondary" className="text-xs">
+                  $20+/hr
+                </Badge>
+              )}
+              {filters.noInterview && (
+                <Badge variant="secondary" className="text-xs">
+                  No Interview
+                </Badge>
+              )}
+              {filters.quickStart && (
+                <Badge variant="secondary" className="text-xs">
+                  Quick Start
+                </Badge>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                <Heart className="h-4 w-4" />
+                Saved Jobs ({getSavedJobsCount()})
+              </Button>
+              {sortedJobs.length > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {sortedJobs.length} jobs • Sorted by Most Relevant
+                </span>
+              )}
+            </div>
             {!user && getSavedJobsCount() > 0 && (
               <Button variant="outline" size="sm">
                 Sign Up to Sync Saves
@@ -255,7 +369,7 @@ export default function SearchJobsPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             <p className="text-muted-foreground mt-2">Loading jobs...</p>
           </div>
-        ) : jobs.length === 0 ? (
+        ) : sortedJobs.length === 0 ? (
           <div className="text-center py-12">
             <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No jobs found in your area</h3>
@@ -266,26 +380,42 @@ export default function SearchJobsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {jobs.map((job) => (
-              <Card key={job.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-foreground line-clamp-2">
-                      {job.title}
-                    </h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleSavedJob(job.id)}
-                      className="p-1 h-auto"
-                    >
-                      <Heart
-                        className={`h-4 w-4 ${
-                          isJobSaved(job.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"
-                        }`}
-                      />
-                    </Button>
-                  </div>
+            {sortedJobs.map((job) => {
+              const matchTags = getMatchTags(job);
+              const trustScore = getTrustScore(job);
+              
+              return (
+                <Card key={job.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-foreground line-clamp-2 mb-1">
+                          {job.title}
+                        </h3>
+                        {/* Match Tags */}
+                        {matchTags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {matchTags.map((tag, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleSavedJob(job.id)}
+                        className="p-1 h-auto"
+                      >
+                        <Heart
+                          className={`h-4 w-4 ${
+                            isJobSaved(job.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"
+                          }`}
+                        />
+                      </Button>
+                    </div>
                   
                   <p className="text-sm text-muted-foreground mb-1">
                     {job.company || job.brand_name}
@@ -305,11 +435,15 @@ export default function SearchJobsPage() {
                   </div>
                   
                   <div className="flex flex-wrap gap-1 mb-3">
-                    {job.is_verified && (
-                      <Badge variant="secondary" className="text-xs">
-                        ✓ Verified
-                      </Badge>
-                    )}
+                    {/* Trust Score Badge */}
+                    <Badge 
+                      variant={trustScore.verified ? "secondary" : "destructive"} 
+                      className="text-xs"
+                      title={trustScore.tooltip}
+                    >
+                      {trustScore.text}
+                    </Badge>
+                    
                     {job.is_featured && (
                       <Badge variant="outline" className="text-xs">
                         No Interview
@@ -363,7 +497,8 @@ export default function SearchJobsPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
