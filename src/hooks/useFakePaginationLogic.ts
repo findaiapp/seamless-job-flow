@@ -129,19 +129,8 @@ export function useFakePaginationLogic() {
 
   const trackPaginationActivity = async (pageNumber: number) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from('user_activity')
-          .insert({
-            user_id: user.id,
-            activity_type: 'pagination_click',
-            metadata: {
-              page_number: pageNumber,
-              timestamp: new Date().toISOString()
-            }
-          });
-      }
+      // Activity tracking will be added after types are regenerated
+      console.log('Page navigation:', pageNumber);
     } catch (error) {
       console.error('Error tracking pagination activity:', error);
     }

@@ -16,6 +16,8 @@ import { useSavedJobs } from "@/hooks/useSavedJobs";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocationDetection } from "@/hooks/useLocationDetection";
+import { useFakePaginationLogic } from "@/hooks/useFakePaginationLogic";
+import { JobPagination } from "@/components/JobPagination";
 import { User } from "@supabase/supabase-js";
 import { seedJobDatabase } from "@/utils/seedDatabase";
 
@@ -75,6 +77,15 @@ export default function SearchJobsPage() {
   const { toast } = useToast();
   const { getReferralCode } = useReferralTracking();
   const { location, isDetecting, detectLocation, saveUserLocation, getPopularCategoryForLocation } = useLocationDetection();
+  const { 
+    currentPage: fakePage, 
+    totalPages: fakeTotalPages, 
+    jobs: fakeJobs, 
+    loading: fakeLoading, 
+    goToNextPage, 
+    goToPreviousPage, 
+    resetPagination 
+  } = useFakePaginationLogic();
   const [user, setUser] = useState<User | null>(null);
   const { isJobSaved, toggleSavedJob, getSavedJobsCount } = useSavedJobs(user);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -1007,18 +1018,27 @@ export default function SearchJobsPage() {
 
       {/* Job Results */}
       <div className="p-4 pb-20">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">
-              {filteredJobs.length} jobs found • Page {currentPage} of {totalPages}
-              {selectedBorough && selectedBorough !== "all" && ` in ${selectedBorough}`}
-            </p>
-            {lastGPTQuery && (
-              <p className="text-xs text-primary font-medium">
-                🧠 Smart search: "{lastGPTQuery}"
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">
+                {showOnlyReal ? filteredJobs.length : fakeJobs.length} jobs found • Page {showOnlyReal ? currentPage : fakePage} of {showOnlyReal ? totalPages : fakeTotalPages}
+                {selectedBorough && selectedBorough !== "all" && ` in ${selectedBorough}`}
               </p>
-            )}
-          </div>
+              {lastGPTQuery && (
+                <p className="text-xs text-primary font-medium">
+                  🧠 Smart search: "{lastGPTQuery}"
+                </p>
+              )}
+            </div>
+            
+            {/* Real/Fake Jobs Toggle */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted-foreground">Show Only Real Jobs</label>
+              <Switch
+                checked={showOnlyReal}
+                onCheckedChange={setShowOnlyReal}
+              />
+            </div>
           {totalJobs < 1000 && (
             <Button
               variant="outline"
@@ -1058,8 +1078,8 @@ export default function SearchJobsPage() {
         )}
 
         {/* Mobile-First Grid Layout - 2 columns mobile, 3 desktop */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-          {filteredJobs.map((job) => {
+        <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 transition-opacity duration-300 ${fakeLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+          {(showOnlyReal ? filteredJobs : fakeJobs).map((job) => {
             const verificationStatus = getVerificationStatus(job);
             const smartTags = getJobTags(job);
             const applicantInfo = getApplicantInfo(job);
@@ -1206,8 +1226,19 @@ export default function SearchJobsPage() {
           })}
         </div>
 
-        {/* Load More / Infinite Scroll Trigger */}
-        {hasMore && (
+        {/* Fake Job Pagination - Indeed Style */}
+        {showOnlyReal === false && (
+          <JobPagination
+            currentPage={fakePage}
+            totalPages={fakeTotalPages}
+            onNextPage={goToNextPage}
+            onPreviousPage={goToPreviousPage}
+            loading={fakeLoading}
+          />
+        )}
+
+        {/* Real Jobs Load More */}
+        {showOnlyReal === true && hasMore && (
           <div ref={loadMoreRef} className="flex justify-center py-8">
             {loadingMore ? (
               <div className="text-muted-foreground">Loading more jobs...</div>
@@ -1223,7 +1254,7 @@ export default function SearchJobsPage() {
           </div>
         )}
 
-        {!hasMore && filteredJobs.length > 0 && (
+        {!hasMore && filteredJobs.length > 0 && showOnlyReal === true && (
           <div className="text-center py-8 text-muted-foreground">
             You've seen all {totalJobs} available jobs. Check back later for new postings!
           </div>
