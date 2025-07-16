@@ -18,6 +18,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocationDetection } from "@/hooks/useLocationDetection";
 import { JobsYoullLove } from "@/components/JobsYoullLove";
 import { InfiniteJobFeed } from "@/components/InfiniteJobFeed";
+import SignupCTA from "@/components/SignupCTA";
 import { SmartAlertsModal } from "@/components/SmartAlertsModal";
 import { User } from "@supabase/supabase-js";
 import { seedJobDatabase } from "@/utils/seedDatabase";
@@ -1326,6 +1327,9 @@ export default function SearchJobsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Signup CTA Modal for Anonymous Applications */}
+      <SignupCTA />
     </div>
   );
 }

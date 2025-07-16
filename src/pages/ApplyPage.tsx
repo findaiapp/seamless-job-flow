@@ -274,7 +274,7 @@ const ApplyPage = () => {
   };
 
   const handleSubmit = async () => {
-    // 🚨 FINAL FIX: Validate required fields first
+    // 🚨 SOFT SUBMIT MODE: Validate required fields first
     if (!formData.fullName || !formData.phone) {
       toast({
         title: "Missing required fields", 
@@ -287,22 +287,16 @@ const ApplyPage = () => {
     setSubmitting(true);
     
     try {
-      // 🚨 FINAL FIX: Get current user with proper validation
+      // 🔥 UPGRADE: Allow anonymous submissions - don't block if user is null
       console.log('🔍 Debug: Getting current user...');
       const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
       
       console.log('👤 Debug: Current user:', currentUser);
       console.log('🎯 Debug: Job ID:', job_id);
       
-      if (authError || !currentUser) {
-        console.error('❌ Auth error:', authError);
-        toast({
-          title: "Authentication required",
-          description: "Please log in to apply.",
-          variant: "destructive",
-        });
-        setSubmitting(false);
-        return;
+      // If no user, that's OK - we'll set seeker_id = null
+      if (authError) {
+        console.warn('⚠️ Auth error (continuing with anonymous):', authError);
       }
 
       // Handle resume upload if present
@@ -320,15 +314,15 @@ const ApplyPage = () => {
         }
       }
 
-      // 🚨 FINAL FIX: Insert to applications table with exact required fields
+      // 🔥 SOFT SUBMIT MODE: Insert to applications table (anonymous OK)
       const applicationPayload = {
         job_id: job_id,
-        full_name: formData.fullName,  // Using full_name as per requirement
+        name: formData.fullName,  // Using 'name' field from schema
         phone: formData.phone,
-        user_id: currentUser.id,       // From Supabase session
+        seeker_id: currentUser?.id || null,  // Nullable for anonymous
         created_at: new Date().toISOString(),
         // Additional fields for completeness
-        email: formData.email || currentUser.email || '',
+        email: formData.email || currentUser?.email || '',
         location: formData.location,
         position_applied_for: formData.positionApplyingFor,
         why_you: formData.whyYou,
@@ -337,7 +331,8 @@ const ApplyPage = () => {
         resume_url: resumeUrl,
         company_name: job?.company || '',
         job_title: job?.title || '',
-        seeker_id: currentUser.id,
+        ref_source: formData.referralSource,
+        referral_code: formData.referralSource,
       };
 
       console.log('📤 Debug: Application payload:', applicationPayload);
@@ -352,28 +347,33 @@ const ApplyPage = () => {
 
       if (appError) throw appError;
 
-      // Record application in applied_jobs table
-      if (currentUser.id && job_id) {
+      // Record application in applied_jobs table (only if logged in)
+      if (currentUser?.id && job_id) {
         await recordApplication(job_id, currentUser.id);
       }
 
       // Clear saved form data
       localStorage.removeItem('apply_prefill_data');
       
-      // 🚨 FINAL FIX: Show success state with visual confirmation
+      // 🔥 SOFT SUBMIT MODE: Show success state with visual confirmation
       setShowSuccess(true);
       
-      // 🚨 FINAL FIX: Success toast as specified
+      // 🔥 SUCCESS: Show success toast as specified
       toast({
-        title: "✅ Application submitted!",
-        description: "You'll hear back soon.",
+        title: "✅ Application sent!",
+        description: currentUser ? "You'll hear back soon." : "Want to track your application? Create a free account to get updates!",
       });
       
       console.log('🎉 Debug: Application submitted successfully!');
       
-      // 🚨 FINAL FIX: Redirect to search-jobs?applied=1 after visual confirmation
+      // 🔥 REDIRECT: Show follow-up signup CTA for anonymous users
       setTimeout(() => {
-        navigate('/search-jobs?applied=1');
+        if (!currentUser) {
+          // Show signup modal or redirect with context
+          navigate('/search-jobs?applied=1&signup=true');
+        } else {
+          navigate('/search-jobs?applied=1');
+        }
       }, 2000);
       
     } catch (error: any) {
