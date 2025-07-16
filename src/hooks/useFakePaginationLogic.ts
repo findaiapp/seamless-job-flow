@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 
 interface FakeJob {
   id: string;
@@ -36,68 +35,6 @@ export function useFakePaginationLogic() {
     }
   }, [searchParams, totalPages]);
 
-  const fetchFakeJobsByPage = useCallback(async (pageNumber: number) => {
-    setLoading(true);
-    
-    try {
-      // Calculate offset with some randomization to create variety
-      const baseOffset = (pageNumber - 1) * 12;
-      const randomOffset = Math.floor(Math.random() * 5); // Add 0-4 random offset
-      const offset = baseOffset + randomOffset;
-      
-      const { data, error } = await supabase
-        .from('fake_jobs')
-        .select('*')
-        .range(offset, offset + 11) // Get 12 jobs per page
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // If we don't have enough jobs, loop back to start
-      if (!data || data.length < 12) {
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('fake_jobs')
-          .select('*')
-          .range(0, 11)
-          .order('created_at', { ascending: false });
-
-        if (fallbackError) throw fallbackError;
-        
-        const combinedData = [...(data || []), ...(fallbackData || [])].slice(0, 12);
-        setJobs(shuffleArray(combinedData) as FakeJob[]);
-      } else {
-        // Randomize order slightly to create variation
-        setJobs(shuffleArray(data) as FakeJob[]);
-      }
-
-      // Add "Just Posted" tags to 1-2 random jobs
-      setJobs(prev => prev.map((job, index) => ({
-        ...job,
-        is_hot: Math.random() > 0.8 && index < 2, // Mark first 2 jobs as potentially "just posted"
-        jobTags: Math.random() > 0.8 && index < 2 ? ['🆕 Just Posted'] : job.jobTags || []
-      })));
-
-      // Track user activity - disabled for now
-      // trackPaginationActivity(pageNumber);
-      
-    } catch (error) {
-      console.error('Error fetching fake jobs:', error);
-      // Fallback to generating some basic jobs
-      setJobs(generateFallbackJobs(pageNumber));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const shuffleArray = (array: any[]) => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  };
-
   const generateFallbackJobs = (pageNumber: number): FakeJob[] => {
     const jobTitles = [
       'Delivery Driver', 'Warehouse Associate', 'Customer Service Rep',
@@ -115,7 +52,7 @@ export function useFakePaginationLogic() {
       title: jobTitles[index % jobTitles.length],
       company: companies[index % companies.length],
       location: `New York, NY`,
-      pay_range: `$${15 + index}/${Math.random() > 0.5 ? 'hr' : 'hr'}`,
+      pay_range: `$${15 + index}/hr`,
       description: `Great opportunity for ${jobTitles[index % jobTitles.length].toLowerCase()}. Immediate start available.`,
       job_type: Math.random() > 0.5 ? 'full-time' : 'part-time',
       category: 'general',
@@ -127,14 +64,29 @@ export function useFakePaginationLogic() {
     }));
   };
 
-  const trackPaginationActivity = async (pageNumber: number) => {
+  const fetchFakeJobsByPage = useCallback(async (pageNumber: number) => {
+    setLoading(true);
+    
     try {
-      // Activity tracking will be added later
-      console.log('Page navigation to:', pageNumber);
+      // For now, just use generated jobs
+      const newJobs = generateFallbackJobs(pageNumber);
+      
+      // Add "Just Posted" tags to 1-2 random jobs
+      const jobsWithTags = newJobs.map((job, index) => ({
+        ...job,
+        is_hot: Math.random() > 0.8 && index < 2,
+        jobTags: Math.random() > 0.8 && index < 2 ? ['🆕 Just Posted'] : job.jobTags || []
+      }));
+      
+      setJobs(jobsWithTags);
+      
     } catch (error) {
-      console.error('Error tracking pagination activity:', error);
+      console.error('Error fetching fake jobs:', error);
+      setJobs(generateFallbackJobs(pageNumber));
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
   const goToNextPage = useCallback(() => {
     const nextPage = currentPage >= totalPages ? 1 : currentPage + 1;
