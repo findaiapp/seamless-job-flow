@@ -136,9 +136,9 @@ const CraigslistPostGenerator = () => {
         .from('craigslist_posts')
         .insert({
           variant: 'generator',
-          title: title,
-          body: body,
-          borough: borough,
+          title,
+          body,
+          borough,
           job_type: jobType,
           used: true,
           utm_link: utmLink,
