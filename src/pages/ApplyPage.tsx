@@ -73,14 +73,15 @@ const ApplyPage = () => {
 
   const [applicantsToday, setApplicantsToday] = useState(0);
 
-  // Test job auto-apply for debugging
+  // 🧪 FINAL FIX: Test job auto-apply with mock data
   const testApply = async () => {
+    console.log('🧪 Debug: Auto-filling with test data...');
     setFormData(prev => ({
       ...prev,
-      fullName: "Test User",
-      phone: "555-0123",
+      fullName: "John Test",
+      phone: "555-555-5555",
       email: "test@example.com",
-      skillsDescription: "Test skills and experience",
+      skillsDescription: "Test skills and experience for debugging purposes",
       availability: "immediately"
     }));
     setCurrentStep(3);
@@ -273,10 +274,10 @@ const ApplyPage = () => {
   };
 
   const handleSubmit = async () => {
-    // Validate required fields
+    // 🚨 FINAL FIX: Validate required fields first
     if (!formData.fullName || !formData.phone) {
       toast({
-        title: "Missing required fields",
+        title: "Missing required fields", 
         description: "Please fill in all required fields.",
         variant: "destructive",
       });
@@ -286,13 +287,25 @@ const ApplyPage = () => {
     setSubmitting(true);
     
     try {
-      // Validate session first
+      // 🚨 FINAL FIX: Get current user with proper validation
+      console.log('🔍 Debug: Getting current user...');
       const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
       
-      if (authError) {
-        throw new Error('Please log in to apply.');
+      console.log('👤 Debug: Current user:', currentUser);
+      console.log('🎯 Debug: Job ID:', job_id);
+      
+      if (authError || !currentUser) {
+        console.error('❌ Auth error:', authError);
+        toast({
+          title: "Authentication required",
+          description: "Please log in to apply.",
+          variant: "destructive",
+        });
+        setSubmitting(false);
+        return;
       }
 
+      // Handle resume upload if present
       let resumeUrl = null;
       if (formData.resume) {
         resumeUrl = await uploadResume(formData.resume);
@@ -307,75 +320,66 @@ const ApplyPage = () => {
         }
       }
 
-      const referralCode = getReferralCode() || formData.referralSource;
+      // 🚨 FINAL FIX: Insert to applications table with exact required fields
+      const applicationPayload = {
+        job_id: job_id,
+        full_name: formData.fullName,  // Using full_name as per requirement
+        phone: formData.phone,
+        user_id: currentUser.id,       // From Supabase session
+        created_at: new Date().toISOString(),
+        // Additional fields for completeness
+        email: formData.email || currentUser.email || '',
+        location: formData.location,
+        position_applied_for: formData.positionApplyingFor,
+        why_you: formData.whyYou,
+        skills_description: formData.skillsDescription,
+        availability: formData.availability,
+        resume_url: resumeUrl,
+        company_name: job?.company || '',
+        job_title: job?.title || '',
+        seeker_id: currentUser.id,
+      };
+
+      console.log('📤 Debug: Application payload:', applicationPayload);
       
-      // Extract UTM parameters and source tracking
-      const urlParams = new URLSearchParams(window.location.search);
-      const utmSource = urlParams.get('utm_source') || '';
-      const utmCampaign = urlParams.get('utm_campaign') || '';
-      const utmMedium = urlParams.get('utm_medium') || '';
-      
-      // Insert application with proper user_id and error handling
       const { data: applicationData, error: appError } = await supabase
         .from('applications')
-        .insert({
-          job_id: job_id,
-          name: formData.fullName,
-          phone: formData.phone,
-          email: formData.email || currentUser?.email || '',
-          location: formData.location,
-          position_applied_for: formData.positionApplyingFor,
-          why_you: formData.whyYou,
-          skills_description: formData.skillsDescription,
-          availability: formData.availability,
-          resume_url: resumeUrl,
-          referral_code: referralCode,
-          company_name: job?.company || '',
-          job_title: job?.title || '',
-          ref_source: formData.howHeard,
-          seeker_id: currentUser?.id || null,
-        })
+        .insert(applicationPayload)
         .select()
         .single();
 
+      console.log('📥 Debug: Insert response:', { applicationData, error: appError });
+
       if (appError) throw appError;
 
-      // Save referral data if present
-      if (referralCode && applicationData) {
-        await supabase.from('referral_tracking').insert({
-          referral_code: referralCode,
-          referral_type: 'job_application',
-          referrer_id: '00000000-0000-0000-0000-000000000000',
-          referred_id: applicationData.id
-        });
-      }
-
       // Record application in applied_jobs table
-      if (currentUser?.id) {
+      if (currentUser.id && job_id) {
         await recordApplication(job_id, currentUser.id);
       }
 
-      // Clear saved data
+      // Clear saved form data
       localStorage.removeItem('apply_prefill_data');
       
-      // Show success state
+      // 🚨 FINAL FIX: Show success state with visual confirmation
       setShowSuccess(true);
       
-      // Show success toast
+      // 🚨 FINAL FIX: Success toast as specified
       toast({
         title: "✅ Application submitted!",
         description: "You'll hear back soon.",
       });
       
-      // Redirect after 2 seconds to show success state
+      console.log('🎉 Debug: Application submitted successfully!');
+      
+      // 🚨 FINAL FIX: Redirect to search-jobs?applied=1 after visual confirmation
       setTimeout(() => {
         navigate('/search-jobs?applied=1');
       }, 2000);
       
     } catch (error: any) {
-      console.error('Submission error:', error);
+      console.error('❌ Submission error:', error);
       
-      // Smart error handling
+      // 🧯 FINAL FIX: Smart error handling
       if (error.message?.includes('duplicate') || error.code === '23505') {
         toast({
           title: "Already applied!",
@@ -385,8 +389,8 @@ const ApplyPage = () => {
         return;
       }
       
-      // Auth-specific errors
-      if (error.message?.includes('log in') || error.message?.includes('auth')) {
+      // Handle not logged in case
+      if (error.message?.includes('log in') || error.message?.includes('auth') || error.message?.includes('Authentication')) {
         toast({
           title: "Authentication required",
           description: "Please log in to apply.",
@@ -395,17 +399,7 @@ const ApplyPage = () => {
         return;
       }
       
-      // Data validation errors
-      if (error.message?.includes('required') || error.message?.includes('validation')) {
-        toast({
-          title: "Invalid data",
-          description: "Please fill in all required fields.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Generic error fallback
+      // 🧯 FINAL FIX: Generic insert failure
       toast({
         title: "Something went wrong",
         description: "Something went wrong. Try again later.",
