@@ -16,7 +16,7 @@ import { useSavedJobs } from "@/hooks/useSavedJobs";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocationDetection } from "@/hooks/useLocationDetection";
-import { useFakePaginationLogic } from "@/hooks/useFakePaginationLogic";
+import { usePaginationLogic } from "@/hooks/usePaginationLogic";
 import { JobPagination } from "@/components/JobPagination";
 import { User } from "@supabase/supabase-js";
 import { seedJobDatabase } from "@/utils/seedDatabase";
@@ -85,7 +85,7 @@ export default function SearchJobsPage() {
     goToNextPage, 
     goToPreviousPage, 
     resetPagination 
-  } = useFakePaginationLogic();
+  } = usePaginationLogic();
   const [user, setUser] = useState<User | null>(null);
   const { isJobSaved, toggleSavedJob, getSavedJobsCount } = useSavedJobs(user);
   const observerRef = useRef<IntersectionObserver | null>(null);

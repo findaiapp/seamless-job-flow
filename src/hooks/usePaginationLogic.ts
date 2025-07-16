@@ -1,4 +1,4 @@
-// Updated fake pagination logic hook - no database calls
+// Fresh pagination logic hook
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -18,7 +18,7 @@ interface FakeJob {
   jobTags?: string[];
 }
 
-export function useFakePaginationLogic() {
+export function usePaginationLogic() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages] = useState(87); // Fixed total to create illusion
@@ -36,7 +36,7 @@ export function useFakePaginationLogic() {
     }
   }, [searchParams, totalPages]);
 
-  const generateFallbackJobs = (pageNumber: number): FakeJob[] => {
+  const generateJobs = (pageNumber: number): FakeJob[] => {
     const jobTitles = [
       'Delivery Driver', 'Warehouse Associate', 'Customer Service Rep',
       'Retail Associate', 'Food Service Worker', 'Administrative Assistant',
@@ -65,12 +65,12 @@ export function useFakePaginationLogic() {
     }));
   };
 
-  const fetchFakeJobsByPage = useCallback(async (pageNumber: number) => {
+  const fetchJobsByPage = useCallback(async (pageNumber: number) => {
     setLoading(true);
     
     try {
-      // For now, just use generated jobs
-      const newJobs = generateFallbackJobs(pageNumber);
+      // Generate jobs for this page
+      const newJobs = generateJobs(pageNumber);
       
       // Add "Just Posted" tags to 1-2 random jobs
       const jobsWithTags = newJobs.map((job, index) => ({
@@ -82,8 +82,8 @@ export function useFakePaginationLogic() {
       setJobs(jobsWithTags);
       
     } catch (error) {
-      console.error('Error fetching fake jobs:', error);
-      setJobs(generateFallbackJobs(pageNumber));
+      console.error('Error fetching jobs:', error);
+      setJobs(generateJobs(pageNumber));
     } finally {
       setLoading(false);
     }
@@ -97,8 +97,8 @@ export function useFakePaginationLogic() {
     // Smooth scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    fetchFakeJobsByPage(nextPage);
-  }, [currentPage, totalPages, setSearchParams, fetchFakeJobsByPage]);
+    fetchJobsByPage(nextPage);
+  }, [currentPage, totalPages, setSearchParams, fetchJobsByPage]);
 
   const goToPreviousPage = useCallback(() => {
     const prevPage = currentPage <= 1 ? totalPages : currentPage - 1;
@@ -106,18 +106,18 @@ export function useFakePaginationLogic() {
     setSearchParams({ page: prevPage.toString() });
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    fetchFakeJobsByPage(prevPage);
-  }, [currentPage, totalPages, setSearchParams, fetchFakeJobsByPage]);
+    fetchJobsByPage(prevPage);
+  }, [currentPage, totalPages, setSearchParams, fetchJobsByPage]);
 
   const resetPagination = useCallback(() => {
     setCurrentPage(1);
     setSearchParams({});
-    fetchFakeJobsByPage(1);
-  }, [setSearchParams, fetchFakeJobsByPage]);
+    fetchJobsByPage(1);
+  }, [setSearchParams, fetchJobsByPage]);
 
   // Load initial page
   useEffect(() => {
-    fetchFakeJobsByPage(currentPage);
+    fetchJobsByPage(currentPage);
   }, []);
 
   return {
@@ -128,6 +128,6 @@ export function useFakePaginationLogic() {
     goToNextPage,
     goToPreviousPage,
     resetPagination,
-    fetchFakeJobsByPage
+    fetchJobsByPage
   };
 }
