@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, MapPin, DollarSign, Clock, Zap, Heart, ArrowLeft, Filter, Bell, Mail, ChevronDown, X, Users, Shield, AlertTriangle, Bookmark, Flame } from "lucide-react";
+import { Search, MapPin, DollarSign, Clock, Zap, Heart, ArrowLeft, Filter, Bell, Mail, ChevronDown, X, Users, Shield, AlertTriangle, Bookmark, Flame, Settings, Sliders } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,10 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useReferralTracking } from "@/hooks/useReferralTracking";
 import { useSavedJobs } from "@/hooks/useSavedJobs";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { User } from "@supabase/supabase-js";
 import { seedJobDatabase } from "@/utils/seedDatabase";
 
@@ -94,6 +97,11 @@ export default function SearchJobsPage() {
   const [jobEnhancements, setJobEnhancements] = useState<{[key: string]: JobEnhancement}>({});
   const [enhancingJobs, setEnhancingJobs] = useState<{[key: string]: boolean}>({});
   const [seeding, setSeeding] = useState(false);
+  const [scrolledPastJobs, setScrolledPastJobs] = useState(0);
+  const [showJobAlertNudge, setShowJobAlertNudge] = useState(false);
+  const [showOnlyReal, setShowOnlyReal] = useState(false);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [selectedJobForApply, setSelectedJobForApply] = useState<string | null>(null);
   
   const [activeFilters, setActiveFilters] = useState({
     highPay: false,
@@ -101,6 +109,16 @@ export default function SearchJobsPage() {
     quickStart: false,
     safeScore: false,
   });
+
+  const [advancedFilters, setAdvancedFilters] = useState({
+    payRange: [10, 50],
+    startDate: "",
+    hours: "",
+    safeScore: false,
+    newListings: false,
+  });
+
+  const isMobile = useIsMobile();
 
   // Auto-detect location from localStorage or default
   useEffect(() => {
@@ -351,7 +369,7 @@ export default function SearchJobsPage() {
     return () => observer.disconnect();
   }, [filteredJobs]);
 
-  const isMobile = window.innerWidth < 768;
+  
 
   // Infinite scroll setup
   useEffect(() => {
@@ -496,7 +514,47 @@ export default function SearchJobsPage() {
   };
 
   const getActiveFilterCount = () => {
-    return Object.values(activeFilters).filter(Boolean).length;
+    return Object.values(activeFilters).filter(Boolean).length + 
+           Object.values(advancedFilters).filter((val, idx) => {
+             if (idx === 0) return val[0] !== 10 || val[1] !== 50; // payRange
+             return Boolean(val);
+           }).length;
+  };
+
+  // Track scroll depth for job alert nudge
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled = Math.floor(window.scrollY / 200); // Roughly 1 job per 200px
+      setScrolledPastJobs(scrolled);
+      
+      if (scrolled >= 10 && !showJobAlertNudge) {
+        setShowJobAlertNudge(true);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [showJobAlertNudge]);
+
+  const handleCardTap = (jobId: string) => {
+    if (expandedCard === jobId) {
+      setExpandedCard(null);
+      setSelectedJobForApply(null);
+    } else {
+      setExpandedCard(jobId);
+      setSelectedJobForApply(jobId);
+    }
+  };
+
+  const getTestimonial = () => {
+    const testimonials = [
+      "My last job started in 48hrs!",
+      "Got hired same day I applied!",
+      "Easy apply, quick response!",
+      "Started working next week!",
+      "Best job search ever!"
+    ];
+    return testimonials[Math.floor(Math.random() * testimonials.length)];
   };
 
   const handleSeedDatabase = async () => {
