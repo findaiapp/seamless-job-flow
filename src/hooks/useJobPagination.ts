@@ -1,4 +1,4 @@
-// Fresh pagination logic hook
+// Clean pagination logic hook - no cache issues
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -18,7 +18,7 @@ interface FakeJob {
   jobTags?: string[];
 }
 
-export function usePaginationLogic() {
+export function useJobPagination() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages] = useState(87); // Fixed total to create illusion
