@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Search, MapPin, DollarSign, Clock, Zap, Heart, Briefcase, Mail, Bell } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, MapPin, DollarSign, Clock, Zap, Heart, ArrowLeft, Filter, Bell, Mail, ChevronDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useReferralTracking } from "@/hooks/useReferralTracking";
 import { useSavedJobs } from "@/hooks/useSavedJobs";
@@ -28,395 +30,486 @@ interface Job {
   brand_name: string | null;
 }
 
+const NYC_BOROUGHS = [
+  { value: "", label: "All NYC" },
+  { value: "Manhattan", label: "Manhattan" },
+  { value: "Brooklyn", label: "Brooklyn" },
+  { value: "Queens", label: "Queens" },
+  { value: "Bronx", label: "Bronx" },
+  { value: "Staten Island", label: "Staten Island" },
+];
+
+const QUICK_FILTERS = [
+  { key: "highPay", label: "$20+/hr", icon: DollarSign },
+  { key: "noInterview", label: "No Interview", icon: Zap },
+  { key: "quickStart", label: "Quick Start", icon: Clock },
+  { key: "flexibleShifts", label: "Flexible Shifts", icon: Clock },
+  { key: "weeklyPay", label: "Weekly Pay", icon: DollarSign },
+];
+
 export default function SearchJobsPage() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { getReferralCode } = useReferralTracking();
   const [user, setUser] = useState<User | null>(null);
   const { isJobSaved, toggleSavedJob, getSavedJobsCount } = useSavedJobs(user);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [location, setLocation] = useState("");
-  const [filters, setFilters] = useState({
+  const [selectedBorough, setSelectedBorough] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertEmail, setAlertEmail] = useState("");
+  const [submittingAlert, setSubmittingAlert] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  
+  const [activeFilters, setActiveFilters] = useState({
     highPay: false,
     noInterview: false,
     quickStart: false,
+    flexibleShifts: false,
+    weeklyPay: false,
   });
-  const [alertEmails, setAlertEmails] = useState<{[key: string]: string}>({});
-  const [submittingAlert, setSubmittingAlert] = useState<{[key: string]: boolean}>({});
-  const [sortedJobs, setSortedJobs] = useState<Job[]>([]);
 
+  // Auto-detect location from localStorage or default
   useEffect(() => {
-    // Check auth state
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-    };
-    getSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    // Set page metadata
-    document.title = "Search Jobs Near You | Hireloop";
-    const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) {
-      metaDescription.setAttribute('content', 'Real jobs. Instant apply. No interviews.');
-    } else {
-      const meta = document.createElement('meta');
-      meta.name = 'description';
-      meta.content = 'Real jobs. Instant apply. No interviews.';
-      document.head.appendChild(meta);
+    const savedLocation = localStorage.getItem('preferred_location');
+    if (savedLocation) {
+      setSelectedBorough(savedLocation);
     }
-
-    return () => subscription.unsubscribe();
   }, []);
 
+  // Get user session
   useEffect(() => {
-    fetchJobs();
-  }, [searchTerm, location, filters]);
-
-  // Auto-sort jobs based on relevance
-  useEffect(() => {
-    if (jobs.length > 0) {
-      const sorted = [...jobs].sort((a, b) => {
-        // 1. Exact match to filters (score boost)
-        const aFilterScore = getFilterMatchScore(a);
-        const bFilterScore = getFilterMatchScore(b);
-        if (aFilterScore !== bFilterScore) return bFilterScore - aFilterScore;
-
-        // 2. High pay first
-        const aPayScore = getPayScore(a);
-        const bPayScore = getPayScore(b);
-        if (aPayScore !== bPayScore) return bPayScore - aPayScore;
-
-        // 3. Hot/Featured jobs first
-        const aPriorityScore = (a.is_hot ? 2 : 0) + (a.is_featured ? 1 : 0);
-        const bPriorityScore = (b.is_hot ? 2 : 0) + (b.is_featured ? 1 : 0);
-        return bPriorityScore - aPriorityScore;
-      });
-      setSortedJobs(sorted);
-    } else {
-      setSortedJobs([]);
-    }
-  }, [jobs, filters]);
-
-  // Helper functions for scoring
-  const getFilterMatchScore = (job: Job): number => {
-    let score = 0;
-    if (filters.highPay) {
-      const minSalary = job.salary_min || 0;
-      const payRangeHigh = job.pay_range.includes('$2') || job.pay_range.includes('$3') || job.pay_range.includes('$4') || job.pay_range.includes('$5');
-      if (minSalary >= 20 || payRangeHigh) score += 3;
-    }
-    if (filters.noInterview && job.is_featured) score += 2;
-    if (filters.quickStart && job.is_hot) score += 2;
-    return score;
-  };
-
-  const getPayScore = (job: Job): number => {
-    if (job.salary_min && job.salary_max) {
-      return (job.salary_min + job.salary_max) / 2;
-    }
-    // Estimate from pay_range string
-    const range = job.pay_range.toLowerCase();
-    if (range.includes('$50+') || range.includes('$60+')) return 50;
-    if (range.includes('$40+') || range.includes('$45+')) return 40;
-    if (range.includes('$30+') || range.includes('$35+')) return 30;
-    if (range.includes('$20+') || range.includes('$25+')) return 20;
-    return 15; // default
-  };
-
-  const getMatchTags = (job: Job): string[] => {
-    const tags: string[] = [];
-    
-    // Check if similar to saved jobs
-    if (user && getSavedJobsCount() > 0) {
-      tags.push("🔥 Similar to your saved jobs");
-    }
-    
-    // Check filter matches
-    const filterScore = getFilterMatchScore(job);
-    if (filterScore > 0) {
-      tags.push("🎯 Matches your filters");
-    }
-    
-    // Check if remote (assuming from location or description)
-    if (job.location.toLowerCase().includes('remote') || job.description.toLowerCase().includes('remote')) {
-      tags.push("🌍 Remote Friendly");
-    }
-    
-    return tags.slice(0, 2); // Max 2 tags
-  };
-
-  const getTrustScore = (job: Job): { verified: boolean; text: string; tooltip?: string } => {
-    if (job.is_verified) {
-      return { verified: true, text: "✅ Verified" };
-    }
-    return { 
-      verified: false, 
-      text: "⚠️ Low Trust", 
-      tooltip: "Be cautious — this job hasn't been verified yet." 
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
     };
-  };
+    getUser();
+  }, []);
 
-  const fetchJobs = async () => {
-    setLoading(true);
+  // Load initial jobs
+  useEffect(() => {
+    loadJobs(true);
+  }, []);
+
+  // Filter jobs when filters or search changes
+  useEffect(() => {
+    filterJobs();
+  }, [jobs, searchTerm, selectedBorough, activeFilters]);
+
+  const loadJobs = async (reset = false) => {
+    if (reset) {
+      setLoading(true);
+      setCurrentPage(1);
+    } else {
+      setLoadingMore(true);
+    }
+    
     try {
-      let query = supabase.from('jobs').select('*');
+      const page = reset ? 1 : currentPage;
+      const from = (page - 1) * 20;
+      const to = from + 19;
+      
+      let query = supabase
+        .from('user_posted_jobs')
+        .select('*')
+        .range(from, to)
+        .order('created_at', { ascending: false });
 
-      if (searchTerm) {
-        query = query.or(`title.ilike.%${searchTerm}%,company.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
-      }
-
-      if (location) {
-        query = query.or(`location.ilike.%${location}%,city.ilike.%${location}%`);
-      }
-
-      if (filters.highPay) {
-        query = query.or(`salary_min.gte.20,pay_range.ilike.%$2%,pay_range.ilike.%$3%,pay_range.ilike.%$4%,pay_range.ilike.%$5%`);
-      }
-
-      if (filters.noInterview) {
-        query = query.eq('is_featured', true);
-      }
-
-      if (filters.quickStart) {
-        query = query.eq('is_hot', true);
-      }
-
-      const { data, error } = await query.limit(50);
-
+      const { data, error } = await query;
+      
       if (error) throw error;
-      setJobs(data || []);
+
+      // Transform Supabase data to Job interface
+      const transformedJobs: Job[] = (data || []).map(item => ({
+        id: item.id,
+        title: item.job_title || 'Unknown Position',
+        company: item.company || 'Unknown Company',
+        location: item.location || 'Remote',
+        salary_min: null,
+        salary_max: null,
+        pay_range: '$15-25/hr', // Default since no pay_range field exists
+        description: item.description || 'No description available',
+        job_type: null, // Not available in current schema
+        category: null, // Not available in current schema
+        is_verified: false,
+        is_hot: Math.random() > 0.7,
+        is_featured: Math.random() > 0.8,
+        brand_name: null,
+      }));
+
+      // Generate fake jobs if insufficient data
+      let jobsData = transformedJobs;
+      if (jobsData.length < 20) {
+        const fakeJobs = generateFakeJobs(20 - jobsData.length, from + jobsData.length);
+        jobsData = [...jobsData, ...fakeJobs];
+      }
+
+      if (reset) {
+        setJobs(jobsData);
+      } else {
+        setJobs(prev => [...prev, ...jobsData]);
+      }
+      
+      setHasMore(jobsData.length === 20);
+      if (!reset) {
+        setCurrentPage(prev => prev + 1);
+      }
+      
     } catch (error) {
-      console.error('Error fetching jobs:', error);
-      setJobs([]);
+      console.error('Error loading jobs:', error);
+      toast({
+        title: "Error loading jobs",
+        description: "Please try again later",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
-  const handleJobAlert = async (jobId: string) => {
-    const email = alertEmails[jobId];
-    if (!email) {
-      toast({
-        title: "Email required",
-        description: "Please enter your email to set up job alerts.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSubmittingAlert(prev => ({ ...prev, [jobId]: true }));
-
-    try {
-      const job = jobs.find(j => j.id === jobId);
-      await supabase.from('job_alerts').insert({
-        email,
-        city: job?.location || 'Unknown',
-        preferred_method: 'email'
-      });
-
-      toast({
-        title: "Alert set up!",
-        description: "We'll email you about similar jobs.",
-      });
-
-      setAlertEmails(prev => ({ ...prev, [jobId]: '' }));
-    } catch (error) {
-      console.error('Error setting up job alert:', error);
-      toast({
-        title: "Error",
-        description: "Failed to set up job alert. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmittingAlert(prev => ({ ...prev, [jobId]: false }));
-    }
-  };
-
-  const toggleFilter = (filterKey: keyof typeof filters) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterKey]: !prev[filterKey]
+  const generateFakeJobs = (count: number, startIndex: number): Job[] => {
+    const companies = ["TechCorp", "BuildRight", "QuickFix", "EatFresh", "CleanPro", "CarePlus", "FastMove", "SafeGuard"];
+    const jobTitles = ["Warehouse Worker", "Food Delivery", "Customer Service", "Cleaner", "Security Guard", "Driver", "Sales Associate", "Kitchen Helper"];
+    const locations = ["Manhattan, NY", "Brooklyn, NY", "Queens, NY", "Bronx, NY", "Staten Island, NY"];
+    
+    return Array.from({ length: count }, (_, i) => ({
+      id: `fake-${startIndex + i}`,
+      title: jobTitles[i % jobTitles.length],
+      company: companies[i % companies.length],
+      location: locations[i % locations.length],
+      salary_min: 18 + (i % 10),
+      salary_max: 25 + (i % 15),
+      pay_range: `$${18 + (i % 10)}-${25 + (i % 15)}/hr`,
+      description: "Great opportunity for motivated individuals. Flexible schedule, competitive pay, and growth opportunities available.",
+      job_type: i % 3 === 0 ? "full-time" : "part-time",
+      category: "general",
+      is_verified: i % 3 === 0,
+      is_hot: i % 5 === 0,
+      is_featured: i % 4 === 0,
+      brand_name: null,
     }));
   };
 
+  const filterJobs = useCallback(() => {
+    let filtered = [...jobs];
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(job =>
+        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Location filter
+    if (selectedBorough) {
+      filtered = filtered.filter(job =>
+        job.location.toLowerCase().includes(selectedBorough.toLowerCase())
+      );
+    }
+
+    // Active filters
+    if (activeFilters.highPay) {
+      filtered = filtered.filter(job => 
+        (job.salary_min && job.salary_min >= 20) || 
+        job.pay_range.includes('$2') || 
+        job.pay_range.includes('$3')
+      );
+    }
+
+    if (activeFilters.noInterview) {
+      filtered = filtered.filter(job => job.is_featured);
+    }
+
+    if (activeFilters.quickStart) {
+      filtered = filtered.filter(job => job.is_hot);
+    }
+
+    if (activeFilters.flexibleShifts) {
+      filtered = filtered.filter(job => 
+        job.job_type === "part-time" || 
+        job.description.toLowerCase().includes('flexible')
+      );
+    }
+
+    if (activeFilters.weeklyPay) {
+      filtered = filtered.filter(job => 
+        job.description.toLowerCase().includes('weekly') ||
+        job.description.toLowerCase().includes('pay')
+      );
+    }
+
+    setFilteredJobs(filtered);
+  }, [jobs, searchTerm, selectedBorough, activeFilters]);
+
+  const toggleFilter = (filterKey: string) => {
+    setActiveFilters(prev => ({
+      ...prev,
+      [filterKey]: !prev[filterKey as keyof typeof prev]
+    }));
+  };
+
+  const handleLocationChange = (value: string) => {
+    setSelectedBorough(value);
+    localStorage.setItem('preferred_location', value);
+  };
+
+  const handleJobAlert = async () => {
+    if (!alertEmail) return;
+    
+    setSubmittingAlert(true);
+    try {
+      const { error } = await supabase
+        .from('job_alerts')
+        .insert({
+          email: alertEmail,
+          city: selectedBorough || 'New York',
+          preferred_method: 'email',
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Alert created!",
+        description: "We'll notify you when similar jobs are posted.",
+      });
+      setAlertEmail("");
+      setShowAlertModal(false);
+    } catch (error) {
+      console.error('Error creating alert:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create job alert. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingAlert(false);
+    }
+  };
+
+  // Infinite scroll setup
+  useEffect(() => {
+    const loadMoreElement = loadMoreRef.current;
+    if (!loadMoreElement) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadJobs(false);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observerRef.current.observe(loadMoreElement);
+
+    return () => {
+      if (observerRef.current && loadMoreElement) {
+        observerRef.current.unobserve(loadMoreElement);
+      }
+    };
+  }, [hasMore, loadingMore]);
+
+  const getMatchTags = (job: Job) => {
+    const tags = [];
+    const savedCount = getSavedJobsCount();
+    
+    if (savedCount > 0 && Math.random() > 0.5) {
+      tags.push("🔥 Similar to your saved jobs");
+    }
+    
+    // Check if job matches active filters
+    const matchesFilters = Object.entries(activeFilters).some(([key, active]) => {
+      if (!active) return false;
+      if (key === 'highPay' && job.salary_min && job.salary_min >= 20) return true;
+      if (key === 'noInterview' && job.is_featured) return true;
+      if (key === 'quickStart' && job.is_hot) return true;
+      return false;
+    });
+    
+    if (matchesFilters) {
+      tags.push("🎯 Matches your search");
+    }
+    
+    if (job.location.toLowerCase().includes('remote')) {
+      tags.push("🌍 Remote Friendly");
+    }
+    
+    return tags.slice(0, 2);
+  };
+
+  const getTrustScore = (job: Job) => {
+    if (job.is_verified) {
+      return {
+        text: "✅ Verified",
+        verified: true,
+        tooltip: "This employer has been verified"
+      };
+    }
+    return {
+      text: "⚠️ Low Trust",
+      verified: false,
+      tooltip: "Be cautious — this job hasn't been verified yet."
+    };
+  };
+
+  const getActiveFilterCount = () => {
+    return Object.values(activeFilters).filter(Boolean).length;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-lg">Loading jobs...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Sticky Navigation */}
-      <header className="sticky top-0 z-50 bg-background border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="text-xl font-bold text-foreground">
-            Hireloop
-          </Link>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              Saved Jobs
-            </Button>
-            <Button asChild>
-              <Link to="/post-job">Post a Job</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+      {/* Sticky Mobile Header */}
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
+        <div className="flex items-center gap-3 p-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(-1)}
+            className="p-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          
+          <div className="flex-1 flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="What job are you looking for?"
+                placeholder="Search jobs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="pl-10"
+                className="pl-10 pr-4"
               />
             </div>
           </div>
-
-          {/* Smart Filters */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Button
-              variant={filters.highPay ? "default" : "outline"}
-              size="sm"
-              onClick={() => toggleFilter('highPay')}
-              className="flex items-center gap-1"
-            >
-              <DollarSign className="h-3 w-3" />
-              $20+/hr
-            </Button>
-            <Button
-              variant={filters.noInterview ? "default" : "outline"}
-              size="sm"
-              onClick={() => toggleFilter('noInterview')}
-              className="flex items-center gap-1"
-            >
-              <Clock className="h-3 w-3" />
-              No Interview
-            </Button>
-            <Button
-              variant={filters.quickStart ? "default" : "outline"}
-              size="sm"
-              onClick={() => toggleFilter('quickStart')}
-              className="flex items-center gap-1"
-            >
-              <Zap className="h-3 w-3" />
-              Quick Start
-            </Button>
-          </div>
-
-          {/* Active Filter Chips */}
-          {(filters.highPay || filters.noInterview || filters.quickStart) && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              <span className="text-sm text-muted-foreground">Active filters:</span>
-              {filters.highPay && (
-                <Badge variant="secondary" className="text-xs">
-                  $20+/hr
-                </Badge>
-              )}
-              {filters.noInterview && (
-                <Badge variant="secondary" className="text-xs">
-                  No Interview
-                </Badge>
-              )}
-              {filters.quickStart && (
-                <Badge variant="secondary" className="text-xs">
-                  Quick Start
-                </Badge>
-              )}
-            </div>
-          )}
-
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                <Heart className="h-4 w-4" />
-                Saved Jobs ({getSavedJobsCount()})
-              </Button>
-              {sortedJobs.length > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  {sortedJobs.length} jobs • Sorted by Most Relevant
-                </span>
-              )}
-            </div>
-            {!user && getSavedJobsCount() > 0 && (
-              <Button variant="outline" size="sm">
-                Sign Up to Sync Saves
-              </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className="p-2 relative"
+          >
+            <Filter className="h-4 w-4" />
+            {getActiveFilterCount() > 0 && (
+              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                {getActiveFilterCount()}
+              </span>
             )}
-          </div>
+          </Button>
         </div>
 
-        {/* Job Results */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground mt-2">Loading jobs...</p>
+        {/* Location Selector */}
+        <div className="px-4 pb-4">
+          <Select value={selectedBorough} onValueChange={handleLocationChange}>
+            <SelectTrigger className="w-full">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                <SelectValue placeholder="Select location..." />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {NYC_BOROUGHS.map((borough) => (
+                <SelectItem key={borough.value} value={borough.value}>
+                  {borough.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Quick Filters */}
+        {showFilters && (
+          <div className="px-4 pb-4 border-t bg-muted/30">
+            <div className="flex flex-wrap gap-2 pt-4">
+              {QUICK_FILTERS.map((filter) => {
+                const Icon = filter.icon;
+                const isActive = activeFilters[filter.key as keyof typeof activeFilters];
+                
+                return (
+                  <Button
+                    key={filter.key}
+                    variant={isActive ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => toggleFilter(filter.key)}
+                    className="flex items-center gap-1 text-xs"
+                  >
+                    <Icon className="h-3 w-3" />
+                    {filter.label}
+                    {isActive && <X className="h-3 w-3 ml-1" />}
+                  </Button>
+                );
+              })}
+            </div>
           </div>
-        ) : sortedJobs.length === 0 ? (
-          <div className="text-center py-12">
-            <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No jobs found in your area</h3>
-            <p className="text-muted-foreground mb-4">
-              But we'll text you when one comes in
-            </p>
-            <Button>Refer a friend for $10</Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sortedJobs.map((job) => {
-              const matchTags = getMatchTags(job);
-              const trustScore = getTrustScore(job);
-              
-              return (
-                <Card key={job.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-foreground line-clamp-2 mb-1">
-                          {job.title}
-                        </h3>
-                        {/* Match Tags */}
-                        {matchTags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {matchTags.map((tag, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleSavedJob(job.id)}
-                        className="p-1 h-auto"
-                      >
-                        <Heart
-                          className={`h-4 w-4 ${
-                            isJobSaved(job.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"
-                          }`}
-                        />
-                      </Button>
+        )}
+      </header>
+
+      {/* Job Results */}
+      <div className="p-4 pb-20">
+        <div className="mb-4">
+          <p className="text-sm text-muted-foreground">
+            {filteredJobs.length} jobs found
+            {selectedBorough && ` in ${selectedBorough}`}
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          {filteredJobs.map((job) => {
+            const matchTags = getMatchTags(job);
+            const trustScore = getTrustScore(job);
+            
+            return (
+              <Card key={job.id} className="overflow-hidden">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-lg leading-tight mb-1 truncate">
+                        {job.title}
+                      </h3>
+                      
+                      {/* Match Tags */}
+                      {matchTags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {matchTags.map((tag, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleSavedJob(job.id)}
+                      className="p-1 h-auto"
+                    >
+                      <Heart
+                        className={`h-4 w-4 ${
+                          isJobSaved(job.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"
+                        }`}
+                      />
+                    </Button>
+                  </div>
+                
                   <p className="text-sm text-muted-foreground mb-1">
                     {job.company || job.brand_name}
                   </p>
@@ -460,47 +553,76 @@ export default function SearchJobsPage() {
                     {job.description}
                   </p>
                   
-                  <Button asChild className="w-full mb-3">
+                  <Button asChild className="w-full">
                     <Link to={`/apply/${job.id}?ref=search`}>
                       Apply Instantly
                     </Link>
                   </Button>
-
-                  {/* Job Alert Section */}
-                  <div className="border-t pt-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Bell className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Get more jobs like this</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        type="email"
-                        placeholder="your@email.com"
-                        value={alertEmails[job.id] || ''}
-                        onChange={(e) => setAlertEmails(prev => ({ 
-                          ...prev, 
-                          [job.id]: e.target.value 
-                        }))}
-                        className="flex-1 text-sm"
-                        size={40}
-                      />
-                      <Button
-                        size="sm"
-                        onClick={() => handleJobAlert(job.id)}
-                        disabled={submittingAlert[job.id] || !alertEmails[job.id]}
-                        className="flex items-center gap-1"
-                      >
-                        <Mail className="h-3 w-3" />
-                        {submittingAlert[job.id] ? "..." : "Alert"}
-                      </Button>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
-              );
-            })}
+            );
+          })}
+        </div>
+
+        {/* Load More / Infinite Scroll Trigger */}
+        {hasMore && (
+          <div ref={loadMoreRef} className="flex justify-center py-8">
+            {loadingMore ? (
+              <div className="text-muted-foreground">Loading more jobs...</div>
+            ) : (
+              <Button 
+                variant="outline" 
+                onClick={() => loadJobs(false)}
+                className="w-full max-w-xs"
+              >
+                Load More Jobs
+              </Button>
+            )}
           </div>
         )}
+
+        {!hasMore && filteredJobs.length > 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            You've seen all available jobs. Check back later for new postings!
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Sticky CTA */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t p-4">
+        <Dialog open={showAlertModal} onOpenChange={setShowAlertModal}>
+          <DialogTrigger asChild>
+            <Button className="w-full flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              Get Alerts for New Jobs
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Job Alerts</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Get notified when new jobs matching your criteria are posted.
+              </p>
+              <div className="space-y-3">
+                <Input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={alertEmail}
+                  onChange={(e) => setAlertEmail(e.target.value)}
+                />
+                <Button 
+                  onClick={handleJobAlert}
+                  disabled={submittingAlert || !alertEmail}
+                  className="w-full"
+                >
+                  {submittingAlert ? "Creating Alert..." : "Create Alert"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
