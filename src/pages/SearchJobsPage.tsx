@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocationDetection } from "@/hooks/useLocationDetection";
 import { SmartPaginationFeed } from "@/components/SmartPaginationFeed";
+import { SmartAlertsModal } from "@/components/SmartAlertsModal";
 import { User } from "@supabase/supabase-js";
 import { seedJobDatabase } from "@/utils/seedDatabase";
 
@@ -94,6 +95,7 @@ export default function SearchJobsPage() {
   const [selectedBorough, setSelectedBorough] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [showAlertModal, setShowAlertModal] = useState(false);
+  const [showSmartAlertsModal, setShowSmartAlertsModal] = useState(false);
   const [alertEmail, setAlertEmail] = useState("");
   const [alertPhone, setAlertPhone] = useState("");
   const [alertCity, setAlertCity] = useState("");
@@ -1211,8 +1213,25 @@ export default function SearchJobsPage() {
         </div>
       )}
 
+      {/* Smart Alerts CTA at bottom of job feed */}
+      {!showOnlyReal && (
+        <div className="p-6 text-center bg-gradient-to-r from-primary/5 to-secondary/5 border-t">
+          <h3 className="text-lg font-semibold mb-2">📬 Get notified when new jobs drop!</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Never miss the perfect job again. Set up smart alerts and be first to apply.
+          </p>
+          <Button 
+            className="flex items-center gap-2"
+            onClick={() => setShowSmartAlertsModal(true)}
+          >
+            <Bell className="h-4 w-4" />
+            Set Up Smart Alerts
+          </Button>
+        </div>
+      )}
+
       {/* Desktop Bottom CTA */}
-      {!isMobile && (
+      {!isMobile && showOnlyReal && (
         <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t p-4">
           <Button 
             className="w-full flex items-center gap-2"
@@ -1223,6 +1242,15 @@ export default function SearchJobsPage() {
           </Button>
         </div>
       )}
+
+      {/* Smart Alerts Modal */}
+      <SmartAlertsModal
+        open={showSmartAlertsModal}
+        onOpenChange={setShowSmartAlertsModal}
+        user={user}
+        defaultTitle={searchTerm}
+        defaultLocation={selectedBorough !== "all" ? selectedBorough : "Manhattan"}
+      />
 
       {/* Alert Modal */}
       <Dialog open={showAlertModal} onOpenChange={setShowAlertModal}>

@@ -7805,11 +7805,15 @@ export type Database = {
           id: string
           is_active: boolean
           last_sent_at: string | null
+          min_pay: number | null
           phone: string | null
           preferred_locations: string[] | null
           preferred_method: string
+          schedule: string | null
           tags: string[] | null
+          title: string | null
           updated_at: string
+          user_id: string | null
           verification_code: string | null
           verified_at: string | null
         }
@@ -7821,11 +7825,15 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_sent_at?: string | null
+          min_pay?: number | null
           phone?: string | null
           preferred_locations?: string[] | null
           preferred_method: string
+          schedule?: string | null
           tags?: string[] | null
+          title?: string | null
           updated_at?: string
+          user_id?: string | null
           verification_code?: string | null
           verified_at?: string | null
         }
@@ -7837,11 +7845,15 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_sent_at?: string | null
+          min_pay?: number | null
           phone?: string | null
           preferred_locations?: string[] | null
           preferred_method?: string
+          schedule?: string | null
           tags?: string[] | null
+          title?: string | null
           updated_at?: string
+          user_id?: string | null
           verification_code?: string | null
           verified_at?: string | null
         }
