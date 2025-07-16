@@ -1,1 +1,4 @@
 project_id = "elzzyqamcuqheykafauc"
+
+[functions.enhance-job-cards]
+verify_jwt = false

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, MapPin, DollarSign, Clock, Zap, Heart, ArrowLeft, Filter, Bell, Mail, ChevronDown, X } from "lucide-react";
+import { Search, MapPin, DollarSign, Clock, Zap, Heart, ArrowLeft, Filter, Bell, Mail, ChevronDown, X, Users, Shield, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +12,15 @@ import { useReferralTracking } from "@/hooks/useReferralTracking";
 import { useSavedJobs } from "@/hooks/useSavedJobs";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@supabase/supabase-js";
+
+interface JobEnhancement {
+  jobId: string;
+  applicantCount: number;
+  todayApplicants: number;
+  applicantText: string;
+  smartTags: string[];
+  timestamp: string;
+}
 
 interface Job {
   id: string;
@@ -28,6 +37,9 @@ interface Job {
   is_hot: boolean | null;
   is_featured: boolean | null;
   brand_name: string | null;
+  contact_email?: string | null;
+  employer_email?: string | null;
+  job_tags?: string[] | null;
 }
 
 const NYC_BOROUGHS = [
@@ -68,6 +80,8 @@ export default function SearchJobsPage() {
   const [submittingAlert, setSubmittingAlert] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [jobEnhancements, setJobEnhancements] = useState<{[key: string]: JobEnhancement}>({});
+  const [enhancingJobs, setEnhancingJobs] = useState<{[key: string]: boolean}>({});
   
   const [activeFilters, setActiveFilters] = useState({
     highPay: false,
@@ -143,6 +157,9 @@ export default function SearchJobsPage() {
         is_hot: Math.random() > 0.7,
         is_featured: Math.random() > 0.8,
         brand_name: null,
+        contact_email: null,
+        employer_email: null,
+        job_tags: null,
       }));
 
       // Generate fake jobs if insufficient data
@@ -180,6 +197,7 @@ export default function SearchJobsPage() {
     const companies = ["TechCorp", "BuildRight", "QuickFix", "EatFresh", "CleanPro", "CarePlus", "FastMove", "SafeGuard"];
     const jobTitles = ["Warehouse Worker", "Food Delivery", "Customer Service", "Cleaner", "Security Guard", "Driver", "Sales Associate", "Kitchen Helper"];
     const locations = ["Manhattan, NY", "Brooklyn, NY", "Queens, NY", "Bronx, NY", "Staten Island, NY"];
+    const emails = ["hr@techcorp.com", "jobs@buildright.com", "", "hiring@eatfresh.com", "", "careers@careplus.com"];
     
     return Array.from({ length: count }, (_, i) => ({
       id: `fake-${startIndex + i}`,
@@ -196,6 +214,9 @@ export default function SearchJobsPage() {
       is_hot: i % 5 === 0,
       is_featured: i % 4 === 0,
       brand_name: null,
+      contact_email: emails[i % emails.length] || null,
+      employer_email: emails[i % emails.length] || null,
+      job_tags: i % 3 === 0 ? ["Quick Start", "No Experience"] : null,
     }));
   };
 
@@ -320,32 +341,109 @@ export default function SearchJobsPage() {
     };
   }, [hasMore, loadingMore]);
 
-  const getMatchTags = (job: Job) => {
-    const tags = [];
-    const savedCount = getSavedJobsCount();
+  const enhanceJobWithAI = async (job: Job) => {
+    if (enhancingJobs[job.id] || jobEnhancements[job.id]) return;
     
-    if (savedCount > 0 && Math.random() > 0.5) {
-      tags.push("🔥 Similar to your saved jobs");
+    setEnhancingJobs(prev => ({ ...prev, [job.id]: true }));
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('enhance-job-cards', {
+        body: {
+          jobId: job.id,
+          title: job.title,
+          description: job.description,
+          company: job.company,
+          location: job.location
+        }
+      });
+
+      if (error) throw error;
+
+      setJobEnhancements(prev => ({ 
+        ...prev, 
+        [job.id]: data 
+      }));
+    } catch (error) {
+      console.error('Error enhancing job:', error);
+    } finally {
+      setEnhancingJobs(prev => ({ ...prev, [job.id]: false }));
     }
-    
-    // Check if job matches active filters
-    const matchesFilters = Object.entries(activeFilters).some(([key, active]) => {
-      if (!active) return false;
-      if (key === 'highPay' && job.salary_min && job.salary_min >= 20) return true;
-      if (key === 'noInterview' && job.is_featured) return true;
-      if (key === 'quickStart' && job.is_hot) return true;
-      return false;
+  };
+
+  // Enhance jobs when they're loaded
+  useEffect(() => {
+    filteredJobs.forEach(job => {
+      if (!jobEnhancements[job.id] && !enhancingJobs[job.id]) {
+        enhanceJobWithAI(job);
+      }
     });
+  }, [filteredJobs]);
+
+  const getVerificationStatus = (job: Job) => {
+    const hasEmail = !!(job.contact_email || job.employer_email);
+    const hasCompany = !!job.company && job.company !== 'Unknown Company';
+    const isVerified = job.is_verified && hasEmail && hasCompany;
     
-    if (matchesFilters) {
-      tags.push("🎯 Matches your search");
+    if (isVerified) {
+      return {
+        type: 'verified',
+        badge: '✅ Verified by Hireloop',
+        tooltip: 'Safe to apply – job and employer verified by our team',
+        className: 'bg-green-100 text-green-800 border-green-200'
+      };
     }
     
-    if (job.location.toLowerCase().includes('remote')) {
-      tags.push("🌍 Remote Friendly");
+    if (!hasEmail || !hasCompany) {
+      return {
+        type: 'risk',
+        badge: '⚠️ Scam Risk: Missing Info',
+        tooltip: "We're reviewing this listing for safety — apply with caution.",
+        className: 'bg-orange-100 text-orange-800 border-orange-200'
+      };
     }
     
-    return tags.slice(0, 2);
+    return null;
+  };
+
+  const getJobTags = (job: Job) => {
+    const enhancement = jobEnhancements[job.id];
+    if (enhancement?.smartTags?.length > 0) {
+      return enhancement.smartTags;
+    }
+    
+    // Fallback to stored tags or generate basic ones
+    if (job.job_tags?.length) {
+      return job.job_tags;
+    }
+    
+    const fallbackTags = [];
+    if (job.is_featured) fallbackTags.push("No Interview");
+    if (job.is_hot) fallbackTags.push("Quick Start");
+    if (job.job_type === "part-time") fallbackTags.push("Flexible Hours");
+    
+    return fallbackTags.slice(0, 3);
+  };
+
+  const getApplicantInfo = (job: Job) => {
+    const enhancement = jobEnhancements[job.id];
+    if (enhancement) {
+      return {
+        text: enhancement.applicantText,
+        count: enhancement.applicantCount,
+        icon: Users
+      };
+    }
+    
+    // Loading state
+    if (enhancingJobs[job.id]) {
+      return {
+        text: "Loading applicant data...",
+        count: 0,
+        icon: Users
+      };
+    }
+    
+    return null;
   };
 
   const getTrustScore = (job: Job) => {
@@ -473,22 +571,52 @@ export default function SearchJobsPage() {
 
         <div className="space-y-4">
           {filteredJobs.map((job) => {
-            const matchTags = getMatchTags(job);
-            const trustScore = getTrustScore(job);
+            const verificationStatus = getVerificationStatus(job);
+            const smartTags = getJobTags(job);
+            const applicantInfo = getApplicantInfo(job);
+            const isScamRisk = verificationStatus?.type === 'risk';
             
             return (
-              <Card key={job.id} className="overflow-hidden">
+              <Card 
+                key={job.id} 
+                className={`overflow-hidden transition-all ${
+                  isScamRisk ? 'opacity-75 border-orange-200' : ''
+                }`}
+              >
                 <CardContent className="p-4">
+                  {/* Applicant Count */}
+                  {applicantInfo && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+                      <applicantInfo.icon className="h-3 w-3" />
+                      <span className="font-medium text-orange-600">
+                        🔥 {applicantInfo.text}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-lg leading-tight mb-1 truncate">
                         {job.title}
                       </h3>
                       
-                      {/* Match Tags */}
-                      {matchTags.length > 0 && (
+                      {/* Verification Badge */}
+                      {verificationStatus && (
+                        <div className="mb-2">
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs ${verificationStatus.className}`}
+                            title={verificationStatus.tooltip}
+                          >
+                            {verificationStatus.badge}
+                          </Badge>
+                        </div>
+                      )}
+                      
+                      {/* Smart Tags */}
+                      {smartTags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
-                          {matchTags.map((tag, index) => (
+                          {smartTags.map((tag, index) => (
                             <Badge key={index} variant="secondary" className="text-xs">
                               {tag}
                             </Badge>
@@ -525,28 +653,6 @@ export default function SearchJobsPage() {
                       ? `$${job.salary_min} - $${job.salary_max}/hr`
                       : job.pay_range
                     }
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {/* Trust Score Badge */}
-                    <Badge 
-                      variant={trustScore.verified ? "secondary" : "destructive"} 
-                      className="text-xs"
-                      title={trustScore.tooltip}
-                    >
-                      {trustScore.text}
-                    </Badge>
-                    
-                    {job.is_featured && (
-                      <Badge variant="outline" className="text-xs">
-                        No Interview
-                      </Badge>
-                    )}
-                    {job.is_hot && (
-                      <Badge variant="outline" className="text-xs">
-                        🔥 Hot Job
-                      </Badge>
-                    )}
                   </div>
                   
                   <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
