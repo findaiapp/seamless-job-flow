@@ -129,8 +129,8 @@ export function useFakePaginationLogic() {
 
   const trackPaginationActivity = async (pageNumber: number) => {
     try {
-      // Activity tracking will be added after types are regenerated
-      console.log('Page navigation:', pageNumber);
+      // Activity tracking will be added later
+      console.log('Page navigation to:', pageNumber);
     } catch (error) {
       console.error('Error tracking pagination activity:', error);
     }
