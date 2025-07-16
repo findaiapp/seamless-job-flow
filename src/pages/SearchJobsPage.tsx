@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, MapPin, DollarSign, Clock, Zap, Heart, ArrowLeft, Filter, Bell, Mail, ChevronDown, X, Users, Shield, AlertTriangle } from "lucide-react";
+import { Search, MapPin, DollarSign, Clock, Zap, Heart, ArrowLeft, Filter, Bell, Mail, ChevronDown, X, Users, Shield, AlertTriangle, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useReferralTracking } from "@/hooks/useReferralTracking";
 import { useSavedJobs } from "@/hooks/useSavedJobs";
@@ -77,7 +78,12 @@ export default function SearchJobsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertEmail, setAlertEmail] = useState("");
+  const [alertPhone, setAlertPhone] = useState("");
+  const [alertCity, setAlertCity] = useState("");
+  const [alertJobType, setAlertJobType] = useState("");
   const [submittingAlert, setSubmittingAlert] = useState(false);
+  const [stickyJobId, setStickyJobId] = useState<string | null>(null);
+  const [visibleJobs, setVisibleJobs] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [jobEnhancements, setJobEnhancements] = useState<{[key: string]: JobEnhancement}>({});
@@ -285,17 +291,19 @@ export default function SearchJobsPage() {
     localStorage.setItem('preferred_location', value);
   };
 
-  const handleJobAlert = async () => {
-    if (!alertEmail) return;
+  const handleJobAlert = async (jobType?: string) => {
+    if (!alertEmail && !alertPhone) return;
     
     setSubmittingAlert(true);
     try {
       const { error } = await supabase
         .from('alerts')
         .insert({
-          email: alertEmail,
-          city: selectedBorough || 'New York',
-          job_type: 'all',
+          email: alertEmail || null,
+          phone: alertPhone || null,
+          city: alertCity || selectedBorough || 'New York',
+          job_type: alertJobType || jobType || 'all',
+          is_active: true
         });
 
       if (error) throw error;
@@ -305,6 +313,9 @@ export default function SearchJobsPage() {
         description: "We'll notify you when similar jobs are posted.",
       });
       setAlertEmail("");
+      setAlertPhone("");
+      setAlertCity("");
+      setAlertJobType("");
       setShowAlertModal(false);
     } catch (error) {
       console.error('Error creating alert:', error);
@@ -317,6 +328,57 @@ export default function SearchJobsPage() {
       setSubmittingAlert(false);
     }
   };
+
+  const handleJobCardClick = (jobId: string) => {
+    navigate(`/apply/${jobId}?ref=search`);
+    window.scrollTo(0, 0);
+  };
+
+  const openAlertModal = (jobTitle?: string) => {
+    if (jobTitle) {
+      setAlertJobType(jobTitle);
+    }
+    setAlertCity(selectedBorough === "all" ? "" : selectedBorough || "");
+    setShowAlertModal(true);
+  };
+
+  // Intersection Observer for sticky bar
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const newVisibleJobs = new Set(visibleJobs);
+        
+        entries.forEach((entry) => {
+          const jobId = entry.target.getAttribute('data-job-id');
+          if (jobId) {
+            if (entry.isIntersecting) {
+              newVisibleJobs.add(jobId);
+            } else {
+              newVisibleJobs.delete(jobId);
+            }
+          }
+        });
+        
+        setVisibleJobs(newVisibleJobs);
+        
+        // Set sticky job to the first visible job
+        if (newVisibleJobs.size > 0) {
+          setStickyJobId(Array.from(newVisibleJobs)[0]);
+        } else {
+          setStickyJobId(null);
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    // Observe all job cards
+    const jobCards = document.querySelectorAll('[data-job-id]');
+    jobCards.forEach(card => observer.observe(card));
+
+    return () => observer.disconnect();
+  }, [filteredJobs]);
+
+  const isMobile = window.innerWidth < 768;
 
   // Infinite scroll setup
   useEffect(() => {
@@ -591,22 +653,59 @@ export default function SearchJobsPage() {
             const isScamRisk = verificationStatus?.type === 'risk';
             
             return (
-              <Card 
-                key={job.id} 
-                className={`overflow-hidden transition-all ${
-                  isScamRisk ? 'opacity-75 border-orange-200' : ''
-                }`}
-              >
-                <CardContent className="p-4">
-                  {/* Applicant Count */}
-                  {applicantInfo && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-                      <applicantInfo.icon className="h-3 w-3" />
-                      <span className="font-medium text-orange-600">
-                        🔥 {applicantInfo.text}
-                      </span>
-                    </div>
-                  )}
+              <TooltipProvider key={job.id}>
+                <Card 
+                  data-job-id={job.id}
+                  className={`overflow-hidden transition-all cursor-pointer hover:shadow-md ${
+                    isScamRisk ? 'opacity-75 border-orange-200' : ''
+                  }`}
+                  onClick={() => handleJobCardClick(job.id)}
+                >
+                  <CardContent className="p-4">
+                  {/* Urgency Tags */}
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    {/* Applicant Count */}
+                    {applicantInfo && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 border-orange-200">
+                            🔥 {applicantInfo.text}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Recent application activity</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    
+                    {/* Good Pay Tag */}
+                    {((job.salary_min && job.salary_min > 20) || job.pay_range.includes('$2') || job.pay_range.includes('$3')) && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 border-green-200">
+                            💸 Good Pay
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Above average pay rate</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    
+                    {/* Scam Risk Alert */}
+                    {isScamRisk && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="destructive" className="text-xs">
+                            ⚠️ Scam Risk: Missing Info
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Missing company details or contact information</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
 
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1 min-w-0">
@@ -638,18 +737,34 @@ export default function SearchJobsPage() {
                         </div>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleSavedJob(job.id)}
-                      className="p-1 h-auto"
-                    >
-                      <Heart
-                        className={`h-4 w-4 ${
-                          isJobSaved(job.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"
-                        }`}
-                      />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openAlertModal(job.title);
+                        }}
+                        className="p-1 h-auto"
+                      >
+                        <Bell className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSavedJob(job.id);
+                        }}
+                        className="p-1 h-auto"
+                      >
+                        <Heart
+                          className={`h-4 w-4 ${
+                            isJobSaved(job.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"
+                          }`}
+                        />
+                      </Button>
+                    </div>
                   </div>
                 
                   <p className="text-sm text-muted-foreground mb-1">
@@ -673,13 +788,18 @@ export default function SearchJobsPage() {
                     {job.description}
                   </p>
                   
-                  <Button asChild className="w-full">
-                    <Link to={`/apply/${job.id}?ref=search`}>
-                      Apply Instantly
-                    </Link>
+                  <Button 
+                    className="w-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleJobCardClick(job.id);
+                    }}
+                  >
+                    Apply Instantly
                   </Button>
                 </CardContent>
               </Card>
+            </TooltipProvider>
             );
           })}
         </div>
@@ -737,42 +857,124 @@ export default function SearchJobsPage() {
         )}
       </div>
 
-      {/* Bottom Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t p-4">
-        <Dialog open={showAlertModal} onOpenChange={setShowAlertModal}>
-          <DialogTrigger asChild>
-            <Button className="w-full flex items-center gap-2">
-              <Bell className="h-4 w-4" />
-              Get Alerts for New Jobs
+      {/* Mobile Sticky Save + Apply Bar */}
+      {isMobile && stickyJobId && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t p-3 z-40">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toggleSavedJob(stickyJobId)}
+              className="flex items-center gap-1 px-3"
+            >
+              <Bookmark className="h-4 w-4" />
+              {isJobSaved(stickyJobId) ? "Saved" : "Save"}
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Job Alerts</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Get notified when new jobs matching your criteria are posted.
-              </p>
-              <div className="space-y-3">
+            
+            <Button
+              className="flex-1 flex items-center gap-1"
+              onClick={() => handleJobCardClick(stickyJobId)}
+            >
+              <Zap className="h-4 w-4" />
+              Apply Instantly
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const job = filteredJobs.find(j => j.id === stickyJobId);
+                openAlertModal(job?.title);
+              }}
+              className="flex items-center gap-1 px-3"
+            >
+              <Bell className="h-4 w-4" />
+              Alerts
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Bottom CTA */}
+      {!isMobile && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t p-4">
+          <Button 
+            className="w-full flex items-center gap-2"
+            onClick={() => openAlertModal()}
+          >
+            <Bell className="h-4 w-4" />
+            Get Alerts for New Jobs
+          </Button>
+        </div>
+      )}
+
+      {/* Alert Modal */}
+      <Dialog open={showAlertModal} onOpenChange={setShowAlertModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Get Alerts for Similar Jobs</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Get notified when new jobs matching your criteria are posted.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium">Job Type</label>
+                <Input
+                  placeholder="e.g. Server, Driver, etc."
+                  value={alertJobType}
+                  onChange={(e) => setAlertJobType(e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">City</label>
+                <Select value={alertCity} onValueChange={setAlertCity}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select city..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {NYC_BOROUGHS.filter(b => b.value !== "all").map((borough) => (
+                      <SelectItem key={borough.value} value={borough.value}>
+                        {borough.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Email</label>
                 <Input
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="your.email@example.com"
                   value={alertEmail}
                   onChange={(e) => setAlertEmail(e.target.value)}
                 />
-                <Button 
-                  onClick={handleJobAlert}
-                  disabled={submittingAlert || !alertEmail}
-                  className="w-full"
-                >
-                  {submittingAlert ? "Creating Alert..." : "Create Alert"}
-                </Button>
               </div>
+              
+              <div>
+                <label className="text-sm font-medium">Phone (Optional)</label>
+                <Input
+                  type="tel"
+                  placeholder="(555) 123-4567"
+                  value={alertPhone}
+                  onChange={(e) => setAlertPhone(e.target.value)}
+                />
+              </div>
+              
+              <Button 
+                onClick={() => handleJobAlert()}
+                disabled={submittingAlert || (!alertEmail && !alertPhone)}
+                className="w-full"
+              >
+                {submittingAlert ? "Creating Alert..." : "Create Alert"}
+              </Button>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
