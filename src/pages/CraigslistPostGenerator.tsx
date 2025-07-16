@@ -140,9 +140,7 @@ const CraigslistPostGenerator = () => {
           borough,
           job_type: jobType,
           used: true,
-          utm_link: utmLink,
-          active: true,
-          city_code: city
+          utm_link: utmLink
         });
 
       if (error) throw error;
