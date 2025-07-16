@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useSearchParams, Navigate } from "react-router-dom";
+import { useParams, useSearchParams, Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ interface Job {
 const ApplyPage = () => {
   const { job_id } = useParams();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { getReferralCode } = useReferralTracking();
   
@@ -222,7 +223,14 @@ const ApplyPage = () => {
 
       const referralCode = getReferralCode() || formData.referralSource;
       
-      // Insert application
+      // Extract UTM parameters and source tracking
+      const urlParams = new URLSearchParams(window.location.search);
+      const utmSource = urlParams.get('utm_source') || '';
+      const utmCampaign = urlParams.get('utm_campaign') || '';
+      const utmMedium = urlParams.get('utm_medium') || '';
+      const refParam = urlParams.get('ref') || '';
+      
+      // Insert application with UTM tracking
       const { data: applicationData, error: appError } = await supabase
         .from('applications')
         .insert({
@@ -239,6 +247,10 @@ const ApplyPage = () => {
           company_name: job?.company || '',
           job_title: job?.title || '',
           ref_source: formData.howHeard,
+          // UTM tracking fields (if they exist in your schema)
+          utm_source: utmSource,
+          utm_campaign: utmCampaign,
+          utm_medium: utmMedium,
         })
         .select()
         .single();
@@ -255,30 +267,16 @@ const ApplyPage = () => {
         });
       }
 
-      toast({
-        title: "Application submitted!",
-        description: "We'll be in touch soon.",
-      });
-
       // Clear saved data
       localStorage.removeItem('apply_prefill_data');
       
-      // Reset form
-      setFormData({
-        fullName: "",
-        phone: "",
-        email: "",
-        location: "",
-        experience: "",
-        skills: "",
-        availability: "",
-        whyYou: "",
-        resume: null,
-        howHeard: "",
-        referralSource: "",
-      });
+      // Redirect to thank you page with referral info
+      const thankYouUrl = new URL('/thank-you', window.location.origin);
+      if (referralCode) {
+        thankYouUrl.searchParams.set('ref', referralCode);
+      }
       
-      setCurrentStep(1);
+      navigate(thankYouUrl.pathname + thankYouUrl.search);
       
     } catch (error) {
       console.error('Submission error:', error);
