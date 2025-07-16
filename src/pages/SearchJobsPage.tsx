@@ -133,10 +133,8 @@ export default function SearchJobsPage() {
       const job = jobs.find(j => j.id === jobId);
       await supabase.from('job_alerts').insert({
         email,
-        job_id: jobId,
-        job_title: job?.title,
-        job_type: job?.job_type,
-        location: job?.location
+        city: job?.location || 'Unknown',
+        preferred_method: 'email'
       });
 
       toast({

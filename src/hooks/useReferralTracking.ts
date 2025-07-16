@@ -15,12 +15,12 @@ export const useReferralTracking = () => {
         // Store referral in localStorage for later use
         localStorage.setItem('referral_code', ref);
         
-        // Track the referral event
-        await supabase.from('referrals').insert({
+        // Track the referral event - using correct schema from referral_tracking table
+        await supabase.from('referral_tracking').insert({
           referral_code: ref,
-          page: location.pathname,
-          user_agent: navigator.userAgent,
-          timestamp: new Date().toISOString()
+          referral_type: 'page_visit',
+          referrer_id: '00000000-0000-0000-0000-000000000000', // placeholder for anonymous
+          referred_id: '00000000-0000-0000-0000-000000000000' // placeholder for anonymous
         });
 
         console.log('Referral tracked:', ref, 'on page:', location.pathname);
