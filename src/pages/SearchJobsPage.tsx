@@ -16,8 +16,7 @@ import { useSavedJobs } from "@/hooks/useSavedJobs";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocationDetection } from "@/hooks/useLocationDetection";
-import { useJobPagination } from "@/hooks/useJobPagination";
-import { JobPagination } from "@/components/JobPagination";
+import { SmartPaginationFeed } from "@/components/SmartPaginationFeed";
 import { User } from "@supabase/supabase-js";
 import { seedJobDatabase } from "@/utils/seedDatabase";
 
@@ -77,15 +76,11 @@ export default function SearchJobsPage() {
   const { toast } = useToast();
   const { getReferralCode } = useReferralTracking();
   const { location, isDetecting, detectLocation, saveUserLocation, getPopularCategoryForLocation } = useLocationDetection();
-  const { 
-    currentPage: fakePage, 
-    totalPages: fakeTotalPages, 
-    jobs: fakeJobs, 
-    loading: fakeLoading, 
-    goToNextPage, 
-    goToPreviousPage, 
-    resetPagination 
-  } = useJobPagination();
+  // Use the new Smart Pagination Feed instead of old pagination
+  const handleJobClick = (jobId: string) => {
+    navigate(`/apply/${jobId}?ref=search`);
+    window.scrollTo(0, 0);
+  };
   const [user, setUser] = useState<User | null>(null);
   const { isJobSaved, toggleSavedJob, getSavedJobsCount } = useSavedJobs(user);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -1016,12 +1011,48 @@ export default function SearchJobsPage() {
         <p className="text-sm text-muted-foreground mt-1">{seoDescription}</p>
       </div>
 
-      {/* Job Results */}
-      <div className="p-4 pb-20">
+      {/* Real/Fake Jobs Toggle */}
+      <div className="p-4 flex items-center justify-between border-b">
+        <div>
+          <p className="text-sm text-muted-foreground">
+            {showOnlyReal ? filteredJobs.length : '1,027'} jobs found
+            {selectedBorough && selectedBorough !== "all" && ` in ${selectedBorough}`}
+          </p>
+          {lastGPTQuery && (
+            <p className="text-xs text-primary font-medium">
+              🧠 Smart search: "{lastGPTQuery}"
+            </p>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-muted-foreground">Show Real Jobs</label>
+          <Switch
+            checked={showOnlyReal}
+            onCheckedChange={setShowOnlyReal}
+          />
+          {totalJobs < 1000 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSeedDatabase}
+              disabled={seeding}
+              className="text-xs ml-2"
+            >
+              {seeding ? "Seeding..." : "Seed 1,635 Jobs"}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Use new Smart Pagination Feed instead of the old job grid */}
+      {showOnlyReal ? (
+        <>
+          {/* Real Jobs Grid Layout - Keep existing for real jobs */}
           <div className="mb-4 flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">
-                {showOnlyReal ? filteredJobs.length : fakeJobs.length} jobs found • Page {showOnlyReal ? currentPage : fakePage} of {showOnlyReal ? totalPages : fakeTotalPages}
+                {filteredJobs.length} jobs found • Page {currentPage} of {totalPages}
                 {selectedBorough && selectedBorough !== "all" && ` in ${selectedBorough}`}
               </p>
               {lastGPTQuery && (
@@ -1030,264 +1061,117 @@ export default function SearchJobsPage() {
                 </p>
               )}
             </div>
-            
-            {/* Real/Fake Jobs Toggle */}
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-muted-foreground">Show Only Real Jobs</label>
-              <Switch
-                checked={showOnlyReal}
-                onCheckedChange={setShowOnlyReal}
-              />
-            </div>
-          {totalJobs < 1000 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSeedDatabase}
-              disabled={seeding}
-              className="text-xs"
-            >
-              {seeding ? "Seeding..." : "Seed 1,635 Jobs"}
-            </Button>
-          )}
-        </div>
+          </div>
 
-        {/* Fallback State for No Results */}
-        {!loading && filteredJobs.length === 0 && (
-          <div className="text-center py-16">
-            <div className="mb-4">
-              <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">Didn't find your match?</h3>
-              <p className="text-muted-foreground mb-4">
-                Try a different borough 👇 or adjust your search criteria
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {NYC_BOROUGHS.filter(b => b.value !== selectedBorough).slice(0, 3).map((borough) => (
-                  <Button
-                    key={borough.value}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleLocationChange(borough.value)}
+          {/* Real Jobs Grid */}
+          <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 transition-opacity duration-300 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+            {filteredJobs.map((job) => {
+              const verificationStatus = getVerificationStatus(job);
+              const smartTags = getJobTags(job);
+              const applicantInfo = getApplicantInfo(job);
+              const isScamRisk = verificationStatus?.type === 'risk';
+              
+              return (
+                <TooltipProvider key={job.id}>
+                  <Card 
+                    data-job-id={job.id}
+                    className={`overflow-hidden transition-all cursor-pointer hover:shadow-lg hover:scale-[1.02] ${
+                      isScamRisk ? 'opacity-75 border-orange-200' : ''
+                    } animate-fade-in`}
+                    onClick={() => handleJobCardClick(job.id)}
                   >
-                    Try {borough.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
+                    <CardContent className="p-3 md:p-4">
+                      {/* Keep existing job card content for real jobs */}
+                      <h3 className="font-semibold text-sm md:text-base leading-tight mb-2 line-clamp-2">
+                        {job.title}
+                      </h3>
+                      
+                      <div className="space-y-1 mb-3">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <MapPin className="h-3 w-3" />
+                          <span className="truncate">{job.location}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {job.company || job.brand_name}
+                        </p>
+                      </div>
+                      
+                      <div className="flex items-center gap-1 text-sm font-semibold text-primary mb-3">
+                        <DollarSign className="h-3 w-3" />
+                        {job.pay_range}
+                      </div>
+                      
+                      <Button 
+                        className="w-full text-xs py-2 h-auto"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleJobCardClick(job.id);
+                        }}
+                      >
+                        🔍 View & Apply
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </TooltipProvider>
+              );
+            })}
           </div>
-        )}
 
-        {/* Mobile-First Grid Layout - 2 columns mobile, 3 desktop */}
-        <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 transition-opacity duration-300 ${fakeLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-          {(showOnlyReal ? filteredJobs : fakeJobs).map((job) => {
-            const verificationStatus = getVerificationStatus(job);
-            const smartTags = getJobTags(job);
-            const applicantInfo = getApplicantInfo(job);
-            const isScamRisk = verificationStatus?.type === 'risk';
-            
-            return (
-              <TooltipProvider key={job.id}>
-                <Card 
-                  data-job-id={job.id}
-                  className={`overflow-hidden transition-all cursor-pointer hover:shadow-lg hover:scale-[1.02] ${
-                    isScamRisk ? 'opacity-75 border-orange-200' : ''
-                  } animate-fade-in`}
-                  onClick={() => handleJobCardClick(job.id)}
+          {/* Real Jobs Load More */}
+          {hasMore && (
+            <div className="flex justify-center py-8">
+              {loadingMore ? (
+                <div className="text-muted-foreground">Loading more jobs...</div>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  onClick={() => loadJobs(false)}
+                  className="w-full max-w-xs"
                 >
-                  <CardContent className="p-3 md:p-4">
-                    {/* Match Score Indicator */}
-                    {job.matchScore && job.matchScore > 75 && (
-                      <div className="flex items-center gap-1 mb-2">
-                        <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 border-green-200">
-                          ✨ {job.matchScore}% Match
-                        </Badge>
-                        {job.matchReasons && job.matchReasons.length > 0 && (
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <div className="text-xs text-muted-foreground cursor-help">ℹ️</div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="text-xs">
-                                {job.matchReasons.slice(0, 2).join(', ')}
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Top Status Badges */}
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {/* Quick Tag */}
-                      {job.is_featured && (
-                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 border-blue-200">
-                          ⚡ Start Tomorrow
-                        </Badge>
-                      )}
-                      {job.is_hot && (
-                        <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 border-purple-200">
-                          🔥 No Interview
-                        </Badge>
-                      )}
-                      {(job.pay_range.includes('$2') || job.pay_range.includes('$3')) && (
-                        <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 border-green-200">
-                          💸 $20+/hr
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Job Title - Compact */}
-                    <h3 className="font-semibold text-sm md:text-base leading-tight mb-2 line-clamp-2">
-                      {job.title}
-                    </h3>
-                    
-                    {/* Location & Company */}
-                    <div className="space-y-1 mb-3">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" />
-                        <span className="truncate">{job.location}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {job.company || job.brand_name}
-                      </p>
-                    </div>
-                    
-                    {/* Pay Rate - Prominent */}
-                    <div className="flex items-center gap-1 text-sm font-semibold text-primary mb-3">
-                      <DollarSign className="h-3 w-3" />
-                      {job.pay_range}
-                    </div>
-                    
-                    {/* Applicants Today Counter */}
-                    {applicantInfo && (
-                      <div className="flex items-center gap-1 text-xs text-orange-600 mb-3">
-                        <Users className="h-3 w-3" />
-                        <span className="font-medium">{applicantInfo.count} applied today</span>
-                      </div>
-                    )}
-                    
-                    {/* View & Apply CTA */}
-                    <Button 
-                      className="w-full text-xs py-2 h-auto"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleJobCardClick(job.id);
-                      }}
-                    >
-                      🔍 View & Apply
-                    </Button>
-                    
-                    {/* Mobile Action Icons */}
-                    <div className="flex justify-center gap-2 mt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleSavedJob(job.id);
-                        }}
-                        className="p-1 h-auto"
-                      >
-                        <Heart
-                          className={`h-3 w-3 ${
-                            isJobSaved(job.id) ? "fill-red-500 text-red-500" : "text-muted-foreground"
-                          }`}
-                        />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openAlertModal(job.title);
-                        }}
-                        className="p-1 h-auto"
-                      >
-                        <Bell className="h-3 w-3 text-muted-foreground" />
-                      </Button>
-                    </div>
-                    
-                    {/* Verification Status - Bottom */}
-                    {verificationStatus && (
-                      <div className="mt-2 pt-2 border-t">
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs w-full justify-center ${verificationStatus.className}`}
-                          title={verificationStatus.tooltip}
-                        >
-                          {verificationStatus.type === 'verified' ? '✅ Safe Score' : '⚠️ Caution'}
-                        </Badge>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TooltipProvider>
-            );
-          })}
-        </div>
-
-        {/* Fake Job Pagination - Indeed Style */}
-        {showOnlyReal === false && (
-          <JobPagination
-            currentPage={fakePage}
-            totalPages={fakeTotalPages}
-            onNextPage={goToNextPage}
-            onPreviousPage={goToPreviousPage}
-            loading={fakeLoading}
-          />
-        )}
-
-        {/* Real Jobs Load More */}
-        {showOnlyReal === true && hasMore && (
-          <div ref={loadMoreRef} className="flex justify-center py-8">
-            {loadingMore ? (
-              <div className="text-muted-foreground">Loading more jobs...</div>
-            ) : (
-              <Button 
-                variant="outline" 
-                onClick={() => loadJobs(false)}
-                className="w-full max-w-xs"
-              >
-                Load More Jobs (Page {currentPage + 1} of {totalPages})
-              </Button>
-            )}
-          </div>
-        )}
-
-        {!hasMore && filteredJobs.length > 0 && showOnlyReal === true && (
-          <div className="text-center py-8 text-muted-foreground">
-            You've seen all {totalJobs} available jobs. Check back later for new postings!
-          </div>
-        )}
-
-        {/* No results fallback */}
-        {!loading && filteredJobs.length === 0 && (
-          <div className="text-center py-16">
-            <div className="mb-4">
-              <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No jobs found</h3>
-              <p className="text-muted-foreground">
-                Try adjusting your search criteria or check back later for new postings.
-              </p>
+                  Load More Jobs (Page {currentPage + 1} of {totalPages})
+                </Button>
+              )}
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setSearchTerm("");
-                setSelectedBorough("all");
-                setActiveFilters({
-                  highPay: false,
-                  noInterview: false,
-                  quickStart: false,
-                  safeScore: false,
-                });
-              }}
-            >
-              Clear Filters
-            </Button>
+          )}
+
+          {!hasMore && filteredJobs.length > 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              You've seen all {totalJobs} available jobs. Check back later for new postings!
+            </div>
+          )}
+        </>
+      ) : (
+        /* 🦄 NEW: Smart Pagination Feed for fake jobs */
+        <SmartPaginationFeed 
+          onJobClick={handleJobClick}
+          className="mt-4"
+        />
+      )}
+
+      {/* Fallback State for No Results */}
+      {!loading && filteredJobs.length === 0 && showOnlyReal && (
+        <div className="text-center py-16">
+          <div className="mb-4">
+            <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">Didn't find your match?</h3>
+            <p className="text-muted-foreground mb-4">
+              Try a different borough 👇 or adjust your search criteria
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {NYC_BOROUGHS.filter(b => b.value !== selectedBorough).slice(0, 3).map((borough) => (
+                <Button
+                  key={borough.value}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleLocationChange(borough.value)}
+                >
+                  Try {borough.label}
+                </Button>
+              ))}
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Mobile Sticky Save + Apply Bar */}
       {isMobile && stickyJobId && (
