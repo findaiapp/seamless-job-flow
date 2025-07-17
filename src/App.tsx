@@ -17,6 +17,7 @@ import AlertsOptInPage from "./pages/AlertsOptInPage";
 import AdminJobsPage from "./pages/AdminJobsPage";
 import SettingsPage from "./pages/SettingsPage";
 import AdminDashboard from "./pages/AdminDashboard";
+import GenerateFakeJobsPage from "./pages/GenerateFakeJobsPage";
 import ReferralsDashboard from "./pages/ReferralsDashboard";
 import RepostEngine from "./pages/RepostEngine";
 import PostTracker from "./pages/PostTracker";
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/alerts-optin" element={<AlertsOptInPage />} />
               <Route path="/admin/jobs" element={<AdminJobsPage />} />
+              <Route path="/generate-fake-jobs" element={<GenerateFakeJobsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/thank-you" element={<ThankYouPage />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
