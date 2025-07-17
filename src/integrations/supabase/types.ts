@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      alert_optins: {
+        Row: {
+          city: string
+          consent: boolean
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          job_type: string
+          phone_number: string
+          utm_source: string | null
+        }
+        Insert: {
+          city: string
+          consent?: boolean
+          created_at?: string
+          email?: string | null
+          first_name: string
+          id?: string
+          job_type: string
+          phone_number: string
+          utm_source?: string | null
+        }
+        Update: {
+          city?: string
+          consent?: boolean
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          job_type?: string
+          phone_number?: string
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           availability: string | null
@@ -330,6 +366,42 @@ export type Database = {
           job_type?: string | null
           location?: string | null
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      sms_blast_logs: {
+        Row: {
+          city: string | null
+          click_tracking_url: string | null
+          id: string
+          job_type: string | null
+          message: string
+          phone_number: string
+          sent_at: string
+          status: string
+          utm_source: string | null
+        }
+        Insert: {
+          city?: string | null
+          click_tracking_url?: string | null
+          id?: string
+          job_type?: string | null
+          message: string
+          phone_number: string
+          sent_at?: string
+          status?: string
+          utm_source?: string | null
+        }
+        Update: {
+          city?: string | null
+          click_tracking_url?: string | null
+          id?: string
+          job_type?: string | null
+          message?: string
+          phone_number?: string
+          sent_at?: string
+          status?: string
+          utm_source?: string | null
         }
         Relationships: []
       }

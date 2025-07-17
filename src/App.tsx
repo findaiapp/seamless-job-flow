@@ -13,6 +13,8 @@ import ThankYouPage from "./pages/ThankYouPage";
 import CraigslistPostGenerator from "./pages/CraigslistPostGenerator";
 import CraigslistAutoPage from "./pages/CraigslistAutoPage";
 import AlertsPage from "./pages/AlertsPage";
+import AlertsOptInPage from "./pages/AlertsOptInPage";
+import SMSBlastPage from "./pages/SMSBlastPage";
 import SettingsPage from "./pages/SettingsPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ReferralsDashboard from "./pages/ReferralsDashboard";
@@ -44,6 +46,8 @@ const App = () => (
               <Route path="/craigslist-generator" element={<CraigslistPostGenerator />} />
               <Route path="/craigslist-auto" element={<CraigslistAutoPage />} />
               <Route path="/alerts" element={<AlertsPage />} />
+              <Route path="/alerts-optin" element={<AlertsOptInPage />} />
+              <Route path="/admin/sms-blast" element={<SMSBlastPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/thank-you" element={<ThankYouPage />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
