@@ -68,33 +68,6 @@ const StepFiveSuccess = () => {
     };
 
     fetchUserData();
-    
-    // Verify access guard - check if user has a submitted application
-    const verifySubmission = async () => {
-      try {
-        const { data: applications, error } = await supabase
-          .from('applications')
-          .select('id')
-          .eq('status', 'submitted')
-          .order('submitted_at', { ascending: false })
-          .limit(1);
-
-        if (error || !applications || applications.length === 0) {
-          // No submitted application found, redirect to start
-          toast({
-            title: "⚠️ Access Denied",
-            description: "Please complete your application first",
-            variant: "destructive",
-          });
-          navigate("/step-one-personal-info");
-        }
-      } catch (e) {
-        console.error("Error verifying submission:", e);
-        navigate("/step-one-personal-info");
-      }
-    };
-
-    verifySubmission();
   }, [location.state, navigate, toast]);
 
   const handleBrowseJobs = () => {

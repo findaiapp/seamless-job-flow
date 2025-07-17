@@ -3,17 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { useApplicationFormData } from "@/hooks/useApplicationFormData";
 import { useToast } from "@/hooks/use-toast";
 
 const StepTwoPreferences = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { formData, updateFormData, saveToSupabase, isLoading } = useApplicationFormData();
   
-  const [formData, setFormData] = useState({
-    jobType: "",
-    schedule: "",
-    availability: "",
+  const [localFormData, setLocalFormData] = useState({
+    jobType: formData.jobType,
+    schedule: formData.schedule,
+    availability: formData.availability,
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,97 +42,53 @@ const StepTwoPreferences = () => {
     "Next Week"
   ];
 
+  // Sync with global form data
+  useEffect(() => {
+    setLocalFormData({
+      jobType: formData.jobType,
+      schedule: formData.schedule,
+      availability: formData.availability,
+    });
+  }, [formData]);
+
   const handleSelectChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const updateApplication = async () => {
-    try {
-      // Get the most recent application with in_progress status
-      const { data: applications, error: fetchError } = await supabase
-        .from('applications')
-        .select('*')
-        .eq('status', 'in_progress')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (fetchError) {
-        console.error("❌ Error fetching application:", fetchError);
-        toast({
-          title: "❌ Error finding your application",
-          description: fetchError.message,
-          variant: "destructive",
-        });
-        return { success: false };
-      }
-
-      if (!applications || applications.length === 0) {
-        toast({
-          title: "❌ No application found",
-          description: "Please start from Step 1",
-          variant: "destructive",
-        });
-        navigate("/step-one-personal-info");
-        return { success: false };
-      }
-
-      const applicationId = applications[0].id;
-
-      // Update the application with job preferences
-      const { data, error } = await supabase
-        .from('applications')
-        .update({
-          // Map form fields to database columns
-          role: formData.jobType,
-          availability: `${formData.schedule} - ${formData.availability}`,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', applicationId)
-        .select()
-        .single();
-
-      if (error) {
-        console.error("❌ Supabase update error:", error);
-        toast({
-          title: "❌ Update failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { success: false };
-      }
-
-      console.log("✅ Application preferences updated", data);
-      return { success: true, id: data.id };
-    } catch (e) {
-      console.error("🔥 Unexpected error:", e);
-      toast({
-        title: "⚠️ Something went wrong",
-        description: e instanceof Error ? e.message : "Unknown error",
-        variant: "destructive",
-      });
-      return { success: false };
-    }
+    setLocalFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     
     try {
-      const result = await updateApplication();
+      // Update global form data
+      updateFormData({
+        jobType: localFormData.jobType,
+        schedule: localFormData.schedule,
+        availability: localFormData.availability,
+        currentStep: 3,
+      });
+
+      // Save to Supabase
+      const result = await saveToSupabase();
       
       if (result.success) {
         toast({
           title: "🎉 Preferences saved!",
           description: "Let's continue with your location",
         });
-        navigate("/step-three-location");
+        navigate("/apply/step-3");
+      } else {
+        toast({
+          title: "❌ Save failed",
+          description: "Please try again",
+          variant: "destructive",
+        });
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const isFormValid = formData.jobType && formData.schedule && formData.availability;
+  const isFormValid = localFormData.jobType && localFormData.schedule && localFormData.availability;
 
   return (
     <div className="min-h-screen bg-background flex flex-col p-6">
@@ -152,7 +109,7 @@ const StepTwoPreferences = () => {
           <Label htmlFor="jobType" className="text-foreground font-medium">
             Job Type
           </Label>
-          <Select value={formData.jobType} onValueChange={(value) => handleSelectChange("jobType", value)}>
+          <Select value={localFormData.jobType} onValueChange={(value) => handleSelectChange("jobType", value)}>
             <SelectTrigger className="h-12 text-lg transition-all duration-200 focus:scale-[1.02] hover-scale bg-background">
               <SelectValue placeholder="Select a job type" />
             </SelectTrigger>
@@ -171,7 +128,7 @@ const StepTwoPreferences = () => {
           <Label htmlFor="schedule" className="text-foreground font-medium">
             Schedule Preference
           </Label>
-          <Select value={formData.schedule} onValueChange={(value) => handleSelectChange("schedule", value)}>
+          <Select value={localFormData.schedule} onValueChange={(value) => handleSelectChange("schedule", value)}>
             <SelectTrigger className="h-12 text-lg transition-all duration-200 focus:scale-[1.02] hover-scale bg-background">
               <SelectValue placeholder="Select your schedule preference" />
             </SelectTrigger>
@@ -190,7 +147,7 @@ const StepTwoPreferences = () => {
           <Label htmlFor="availability" className="text-foreground font-medium">
             When Can You Start?
           </Label>
-          <Select value={formData.availability} onValueChange={(value) => handleSelectChange("availability", value)}>
+          <Select value={localFormData.availability} onValueChange={(value) => handleSelectChange("availability", value)}>
             <SelectTrigger className="h-12 text-lg transition-all duration-200 focus:scale-[1.02] hover-scale bg-background">
               <SelectValue placeholder="Select your availability" />
             </SelectTrigger>
@@ -205,17 +162,17 @@ const StepTwoPreferences = () => {
         </div>
 
         {/* Validation Prompts */}
-        {!formData.jobType && (
+        {!localFormData.jobType && (
           <p className="text-muted-foreground text-sm animate-fade-in">
             👆 Please select your preferred job type
           </p>
         )}
-        {formData.jobType && !formData.schedule && (
+        {localFormData.jobType && !localFormData.schedule && (
           <p className="text-muted-foreground text-sm animate-fade-in">
             👆 Please select your schedule preference
           </p>
         )}
-        {formData.jobType && formData.schedule && !formData.availability && (
+        {localFormData.jobType && localFormData.schedule && !localFormData.availability && (
           <p className="text-muted-foreground text-sm animate-fade-in">
             👆 Please select when you can start
           </p>

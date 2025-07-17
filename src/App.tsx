@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ApplicationFormProvider } from "@/contexts/ApplicationFormContext";
 import Index from "./pages/Index";
 import SearchJobsPage from "./pages/SearchJobsPage";
 import ApplyPage from "./pages/ApplyPage";
@@ -13,11 +14,7 @@ import CraigslistPostGenerator from "./pages/CraigslistPostGenerator";
 import CraigslistAutoPage from "./pages/CraigslistAutoPage";
 import AlertsPage from "./pages/AlertsPage";
 import SettingsPage from "./pages/SettingsPage";
-import StepOnePersonalInfo from "./pages/StepOnePersonalInfo";
-import StepTwoPreferences from "./pages/StepTwoPreferences";
-import StepThreeLocation from "./pages/StepThreeLocation";
-import StepFourReview from "./pages/StepFourReview";
-import StepFiveSuccess from "./pages/StepFiveSuccess";
+import ApplicationFlowRouter from "./components/ApplicationFlowRouter";
 import NotFound from "./pages/NotFound";
 import DebugBanner from "./components/DebugBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -32,25 +29,23 @@ const App = () => (
         <Sonner />
         <DebugBanner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/search-jobs" element={<SearchJobsPage />} />
-            <Route path="/apply/:job_id" element={<ApplyPage />} />
-            <Route path="/apply" element={<ApplyFallback />} />
-            <Route path="/post-job" element={<PostJobPage />} />
-            <Route path="/craigslist-generator" element={<CraigslistPostGenerator />} />
-            <Route path="/craigslist-auto" element={<CraigslistAutoPage />} />
-            <Route path="/alerts" element={<AlertsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/step-one-personal-info" element={<StepOnePersonalInfo />} />
-            <Route path="/step-two-preferences" element={<StepTwoPreferences />} />
-            <Route path="/step-three-location" element={<StepThreeLocation />} />
-            <Route path="/step-four-review" element={<StepFourReview />} />
-            <Route path="/step-five-success" element={<StepFiveSuccess />} />
-            <Route path="/thank-you" element={<ThankYouPage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <ApplicationFormProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/search-jobs" element={<SearchJobsPage />} />
+              <Route path="/apply/:job_id" element={<ApplyPage />} />
+              <Route path="/apply" element={<ApplyFallback />} />
+              <Route path="/apply/*" element={<ApplicationFlowRouter />} />
+              <Route path="/post-job" element={<PostJobPage />} />
+              <Route path="/craigslist-generator" element={<CraigslistPostGenerator />} />
+              <Route path="/craigslist-auto" element={<CraigslistAutoPage />} />
+              <Route path="/alerts" element={<AlertsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/thank-you" element={<ThankYouPage />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ApplicationFormProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

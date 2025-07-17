@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { useApplicationFormData } from "@/hooks/useApplicationFormData";
 import { useToast } from "@/hooks/use-toast";
 import { User, Mail, Briefcase, MapPin, Edit } from "lucide-react";
 
@@ -19,54 +19,29 @@ interface ApplicationData {
 const StepFourReview = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { formData, submitApplication, isLoading } = useApplicationFormData();
   
-  const [applicationData, setApplicationData] = useState<ApplicationData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchApplicationData();
-  }, []);
-
-  const fetchApplicationData = async () => {
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    
     try {
-      const { data: applications, error } = await supabase
-        .from('applications')
-        .select('*')
-        .eq('status', 'in_progress')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (error) {
-        console.error("❌ Error fetching application:", error);
+      const result = await submitApplication();
+      
+      if (result.success) {
+        navigate("/apply/step-5", { 
+          state: { name: formData.fullName || "there" }
+        });
+      } else {
         toast({
-          title: "❌ Error loading your application",
-          description: error.message,
+          title: "❌ Submission failed",
+          description: "Please try again",
           variant: "destructive",
         });
-        return;
       }
-
-      if (!applications || applications.length === 0) {
-        toast({
-          title: "❌ No application found",
-          description: "Please start from Step 1",
-          variant: "destructive",
-        });
-        navigate("/step-one-personal-info");
-        return;
-      }
-
-      setApplicationData(applications[0]);
-    } catch (e) {
-      console.error("🔥 Unexpected error:", e);
-      toast({
-        title: "⚠️ Something went wrong",
-        description: "Failed to load your application",
-        variant: "destructive",
-      });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 

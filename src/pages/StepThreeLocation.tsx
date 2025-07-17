@@ -3,17 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { useApplicationFormData } from "@/hooks/useApplicationFormData";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin } from "lucide-react";
 
 const StepThreeLocation = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { formData, updateFormData, saveToSupabase, isLoading } = useApplicationFormData();
   
-  const [formData, setFormData] = useState({
-    city: "",
-    neighborhood: "",
+  const [localFormData, setLocalFormData] = useState({
+    city: formData.city,
+    neighborhood: formData.neighborhood,
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,108 +45,48 @@ const StepThreeLocation = () => {
     "Harlem, NY"
   ];
 
+  // Sync with global form data
   useEffect(() => {
-    if (formData.city.length > 0) {
+    setLocalFormData({
+      city: formData.city,
+      neighborhood: formData.neighborhood,
+    });
+  }, [formData]);
+
+  useEffect(() => {
+    if (localFormData.city.length > 0) {
       const filtered = predefinedCities.filter(city =>
-        city.toLowerCase().includes(formData.city.toLowerCase())
+        city.toLowerCase().includes(localFormData.city.toLowerCase())
       );
       setFilteredCities(filtered);
-      setShowSuggestions(filtered.length > 0 && formData.city.length > 1);
+      setShowSuggestions(filtered.length > 0 && localFormData.city.length > 1);
     } else {
       setShowSuggestions(false);
       setFilteredCities([]);
     }
-  }, [formData.city]);
+  }, [localFormData.city]);
 
   const handleCityChange = (value: string) => {
-    setFormData(prev => ({ ...prev, city: value }));
+    setLocalFormData(prev => ({ ...prev, city: value }));
     setCityError("");
   };
 
   const handleCitySelect = (city: string) => {
-    setFormData(prev => ({ ...prev, city }));
+    setLocalFormData(prev => ({ ...prev, city }));
     setShowSuggestions(false);
     setCityError("");
   };
 
   const handleNeighborhoodChange = (value: string) => {
-    setFormData(prev => ({ ...prev, neighborhood: value }));
+    setLocalFormData(prev => ({ ...prev, neighborhood: value }));
   };
 
   const validateForm = () => {
-    if (!formData.city.trim()) {
+    if (!localFormData.city.trim()) {
       setCityError("Please enter a city or zip code");
       return false;
     }
     return true;
-  };
-
-  const updateApplication = async () => {
-    try {
-      // Get the most recent application with in_progress status
-      const { data: applications, error: fetchError } = await supabase
-        .from('applications')
-        .select('*')
-        .eq('status', 'in_progress')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (fetchError) {
-        console.error("❌ Error fetching application:", fetchError);
-        toast({
-          title: "❌ Error finding your application",
-          description: fetchError.message,
-          variant: "destructive",
-        });
-        return { success: false };
-      }
-
-      if (!applications || applications.length === 0) {
-        toast({
-          title: "❌ No application found",
-          description: "Please start from Step 1",
-          variant: "destructive",
-        });
-        navigate("/step-one-personal-info");
-        return { success: false };
-      }
-
-      const applicationId = applications[0].id;
-
-      // Update the application with location preferences
-      const { data, error } = await supabase
-        .from('applications')
-        .update({
-          location: formData.neighborhood ? 
-            `${formData.city}, ${formData.neighborhood}` : 
-            formData.city,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', applicationId)
-        .select()
-        .single();
-
-      if (error) {
-        console.error("❌ Supabase update error:", error);
-        toast({
-          title: "❌ Update failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { success: false };
-      }
-
-      console.log("✅ Application location updated", data);
-      return { success: true, id: data.id };
-    } catch (e) {
-      console.error("🔥 Unexpected error:", e);
-      toast({
-        title: "⚠️ Something went wrong",
-        description: e instanceof Error ? e.message : "Unknown error",
-        variant: "destructive",
-      });
-      return { success: false };
-    }
   };
 
   const handleSubmit = async () => {
@@ -154,21 +95,35 @@ const StepThreeLocation = () => {
     setIsSubmitting(true);
     
     try {
-      const result = await updateApplication();
+      // Update global form data
+      updateFormData({
+        city: localFormData.city,
+        neighborhood: localFormData.neighborhood,
+        currentStep: 4,
+      });
+
+      // Save to Supabase
+      const result = await saveToSupabase();
       
       if (result.success) {
         toast({
           title: "🎉 Location saved!",
           description: "Let's review your application",
         });
-        navigate("/step-four-review");
+        navigate("/apply/step-4");
+      } else {
+        toast({
+          title: "❌ Save failed",
+          description: "Please try again",
+          variant: "destructive",
+        });
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const isFormValid = formData.city.trim();
+  const isFormValid = localFormData.city.trim();
 
   return (
     <div className="min-h-screen bg-background flex flex-col p-6 relative">
@@ -194,11 +149,11 @@ const StepThreeLocation = () => {
             <Input
               id="city"
               type="text"
-              value={formData.city}
+              value={localFormData.city}
               onChange={(e) => handleCityChange(e.target.value)}
               placeholder="Enter city or zip code"
               className="h-12 text-lg pl-12 transition-all duration-200 focus:scale-[1.02] hover-scale"
-              onFocus={() => formData.city.length > 1 && setShowSuggestions(true)}
+              onFocus={() => localFormData.city.length > 1 && setShowSuggestions(true)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             />
           </div>
@@ -237,7 +192,7 @@ const StepThreeLocation = () => {
             <Input
               id="neighborhood"
               type="text"
-              value={formData.neighborhood}
+              value={localFormData.neighborhood}
               onChange={(e) => handleNeighborhoodChange(e.target.value)}
               placeholder="e.g., Downtown, Midtown, etc."
               className="h-12 text-lg pl-12 transition-all duration-200 focus:scale-[1.02] hover-scale"
@@ -246,7 +201,7 @@ const StepThreeLocation = () => {
         </div>
 
         {/* Validation Prompt */}
-        {!formData.city && (
+        {!localFormData.city && (
           <p className="text-muted-foreground text-sm animate-fade-in">
             📍 Please enter your preferred work location
           </p>
