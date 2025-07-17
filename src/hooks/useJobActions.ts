@@ -1,79 +1,71 @@
-import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useCallback } from 'react';
 
-export const useJobActions = () => {
+interface UseJobActionsReturn {
+  saveJob: (jobId: string) => Promise<boolean>;
+  unsaveJob: (jobId: string) => Promise<boolean>;
+  applyToJob: (jobId: string, applicationData?: any) => Promise<boolean>;
+  savedJobs: Set<string>;
+  appliedJobs: Set<string>;
+  loading: boolean;
+}
+
+export function useJobActions(): UseJobActionsReturn {
+  const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
+  const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
 
-  const saveJob = async (jobId: string, userId?: string) => {
-    if (!userId) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to save jobs",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    setLoading(true);
+  const saveJob = useCallback(async (jobId: string): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('saved_jobs')
-        .insert({ 
-          user_id: userId, 
-          job_id: jobId 
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Job saved! 💾",
-        description: "Added to your saved jobs list",
-      });
+      setLoading(true);
+      // Mock save functionality
+      setSavedJobs(prev => new Set([...prev, jobId]));
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving job:', error);
-      if (error.code === '23505') {
-        toast({
-          title: "Already saved",
-          description: "This job is already in your saved list",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to save job",
-          variant: "destructive",
-        });
-      }
       return false;
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const recordApplication = async (jobId: string, userId?: string) => {
-    if (!userId) return false;
-
+  const unsaveJob = useCallback(async (jobId: string): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('applied_jobs')
-        .insert({ 
-          user_id: userId, 
-          job_id: jobId 
-        });
-
-      if (error) throw error;
+      setLoading(true);
+      // Mock unsave functionality
+      setSavedJobs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(jobId);
+        return newSet;
+      });
       return true;
     } catch (error) {
-      console.error('Error recording application:', error);
+      console.error('Error unsaving job:', error);
       return false;
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
+
+  const applyToJob = useCallback(async (jobId: string, applicationData?: any): Promise<boolean> => {
+    try {
+      setLoading(true);
+      // Mock apply functionality
+      setAppliedJobs(prev => new Set([...prev, jobId]));
+      return true;
+    } catch (error) {
+      console.error('Error applying to job:', error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   return {
     saveJob,
-    recordApplication,
+    unsaveJob,
+    applyToJob,
+    savedJobs,
+    appliedJobs,
     loading
   };
-};
+}
