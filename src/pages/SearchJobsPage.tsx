@@ -1311,6 +1311,17 @@ export default function SearchJobsPage() {
 
       {/* Signup CTA Modal for Anonymous Applications */}
       <SignupCTA />
+      
+      {/* Admin Debug Link */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <Link to="/admin-dashboard">
+            <Button variant="outline" size="sm" className="text-xs">
+              Admin Dashboard
+            </Button>
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

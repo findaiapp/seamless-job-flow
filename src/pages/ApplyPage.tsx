@@ -15,6 +15,7 @@ import { useReferralTracking } from "@/hooks/useReferralTracking";
 import { useJobActions } from "@/hooks/useJobActions";
 import { useSmartMatchScore } from "@/hooks/useSmartMatchScore";
 import { useSmartJobAlerts } from "@/hooks/useSmartJobAlerts";
+import { useCraigslistTracker } from "@/hooks/useCraigslistTracker";
 
 interface Job {
   id: string;
@@ -33,6 +34,7 @@ const ApplyPage = () => {
   const { toast } = useToast();
   const { getReferralCode } = useReferralTracking();
   const { saveJob, applyToJob, loading: actionLoading } = useJobActions();
+  const { trackApplication, isCraigslistUser, isTracking } = useCraigslistTracker();
   
   const [job, setJob] = useState<Job | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -357,6 +359,11 @@ const ApplyPage = () => {
       // Clear saved form data
       localStorage.removeItem('apply_prefill_data');
       
+      // Track Craigslist application if applicable
+      if (isCraigslistUser && job_id) {
+        await trackApplication(job_id);
+      }
+      
       // Show success state
       setShowSuccess(true);
       
@@ -457,7 +464,7 @@ const ApplyPage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Craigslist Trust Box */}
-      {formData.howHeard === 'Craigslist' && (
+      {isCraigslistUser && (
         <div className="sticky top-0 z-50 bg-green-50 border-b border-green-200 text-green-800">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center justify-center gap-6 text-sm flex-wrap">

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, DollarSign, Shield, ArrowRight, CheckCircle, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCraigslistTracker } from "@/hooks/useCraigslistTracker";
 
 interface Job {
   id: string;
@@ -20,6 +21,7 @@ const ApplyFallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isCraigslistUser } = useCraigslistTracker();
   const [featuredJob, setFeaturedJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -108,7 +110,7 @@ const ApplyFallback = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Craigslist Trust Box */}
-      {isFromCraigslist && (
+      {isCraigslistUser && (
         <div className="sticky top-0 z-50 bg-green-50 border-b border-green-200 text-green-800">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center justify-center gap-6 text-sm flex-wrap">

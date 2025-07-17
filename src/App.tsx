@@ -14,6 +14,7 @@ import CraigslistPostGenerator from "./pages/CraigslistPostGenerator";
 import CraigslistAutoPage from "./pages/CraigslistAutoPage";
 import AlertsPage from "./pages/AlertsPage";
 import SettingsPage from "./pages/SettingsPage";
+import AdminDashboard from "./pages/AdminDashboard";
 import ApplicationFlowRouter from "./components/ApplicationFlowRouter";
 import NotFound from "./pages/NotFound";
 import DebugBanner from "./components/DebugBanner";
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/thank-you" element={<ThankYouPage />} />
+              <Route path="/admin-dashboard" element={<AdminDashboard />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

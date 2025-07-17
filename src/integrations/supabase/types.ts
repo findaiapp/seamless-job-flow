@@ -59,6 +59,51 @@ export type Database = {
         }
         Relationships: []
       }
+      craigslist_applications: {
+        Row: {
+          city: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          job_id: string
+          submitted_at: string
+          updated_at: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          variant: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          job_id: string
+          submitted_at?: string
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          variant?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          job_id?: string
+          submitted_at?: string
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          variant?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
