@@ -1,25 +1,30 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import Confetti from "react-confetti";
-import { Check, Rocket, Share2, Search } from "lucide-react";
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useApplicationFormData } from '@/hooks/useApplicationFormData';
+import { Button } from '@/components/ui/button';
+import { CheckCircle } from 'lucide-react';
+import Confetti from 'react-confetti';
 
 const StepFiveSuccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
-  
-  const [userName, setUserName] = useState("Friend");
+  const { formData } = useApplicationFormData();
   const [showConfetti, setShowConfetti] = useState(true);
   const [windowDimensions, setWindowDimensions] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: typeof window !== 'undefined' ? window.innerWidth : 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : 0,
   });
 
+  // Get name from location state, form data, or default to "there"
+  const userName = location.state?.name || 
+                   formData.fullName || 
+                   "there";
+
   useEffect(() => {
-    // Get window dimensions for confetti
+    // Auto-scroll to top
+    window.scrollTo(0, 0);
+
+    // Handle window resize for confetti
     const handleResize = () => {
       setWindowDimensions({
         width: window.innerWidth,
@@ -28,149 +33,77 @@ const StepFiveSuccess = () => {
     };
 
     window.addEventListener('resize', handleResize);
-    
+
     // Stop confetti after 5 seconds
-    const confettiTimer = setTimeout(() => {
+    const timer = setTimeout(() => {
       setShowConfetti(false);
     }, 5000);
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      clearTimeout(confettiTimer);
+      clearTimeout(timer);
     };
   }, []);
 
-  useEffect(() => {
-    // Get user name from location state or fetch from Supabase
-    const fetchUserData = async () => {
-      try {
-        // Try to get name from location state first
-        if (location.state?.name) {
-          setUserName(location.state.name);
-          return;
-        }
-
-        // Fallback: fetch from Supabase
-        const { data: applications, error } = await supabase
-          .from('applications')
-          .select('name')
-          .eq('status', 'submitted')
-          .order('submitted_at', { ascending: false })
-          .limit(1);
-
-        if (!error && applications && applications.length > 0 && applications[0].name) {
-          setUserName(applications[0].name);
-        }
-      } catch (e) {
-        console.error("Error fetching user data:", e);
-        // Keep default "Friend" if fetch fails
-      }
-    };
-
-    fetchUserData();
-  }, [location.state, navigate, toast]);
-
-  const handleBrowseJobs = () => {
-    navigate("/search-jobs");
-  };
-
-  const handleReferFriend = () => {
-    // Simple share functionality
-    if (navigator.share) {
-      navigator.share({
-        title: "Join me on this job platform!",
-        text: "I just applied for jobs easily. You should try it too!",
-        url: window.location.origin,
-      });
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.origin);
-      toast({
-        title: "🔗 Link copied!",
-        description: "Share this link with your friends",
-      });
-    }
+  const handleReturnToJobs = () => {
+    navigate('/search-jobs');
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Confetti */}
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 flex items-center justify-center p-4 relative overflow-hidden">
       {showConfetti && (
         <Confetti
           width={windowDimensions.width}
           height={windowDimensions.height}
           recycle={false}
-          numberOfPieces={300}
-          gravity={0.3}
+          numberOfPieces={200}
+          gravity={0.2}
+          colors={['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#FFD700', '#FF6B6B', '#4ECDC4']}
         />
       )}
-
-      {/* Success Content */}
-      <div className="text-center space-y-6 animate-fade-in max-w-md w-full">
-        {/* Success Badge */}
-        <div className="inline-flex items-center justify-center w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full mb-4 animate-scale-in">
-          <Check className="w-12 h-12 text-green-600 dark:text-green-400" />
-        </div>
-
-        {/* Main Title */}
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold text-foreground animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            🎉 You're In!
-          </h1>
-          <div className="w-20 h-1 bg-gradient-to-r from-primary to-primary/60 mx-auto rounded-full animate-fade-in" style={{ animationDelay: '0.4s' }} />
-        </div>
-
-        {/* Personalized Message */}
-        <div className="space-y-2 animate-fade-in" style={{ animationDelay: '0.6s' }}>
-          <p className="text-xl text-muted-foreground">
-            Thanks, <span className="font-semibold text-foreground">{userName}</span>!
-          </p>
-          <p className="text-lg text-muted-foreground">
-            Your application has been submitted. We'll reach out shortly.
-          </p>
-        </div>
-
-        {/* Success Details */}
-        <div className="bg-accent/50 rounded-lg p-4 animate-fade-in" style={{ animationDelay: '0.8s' }}>
-          <div className="flex items-center gap-2 text-accent-foreground">
-            <Rocket className="w-5 h-5" />
-            <span className="font-medium">Application Status: Submitted</span>
+      
+      <div className="max-w-2xl mx-auto text-center animate-fade-in">
+        {/* Success Icon */}
+        <div className="mb-8 flex justify-center">
+          <div className="relative">
+            <CheckCircle className="w-24 h-24 text-primary animate-scale-in" />
+            <div className="absolute inset-0 w-24 h-24 rounded-full border-4 border-primary/20 animate-pulse" />
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="space-y-3 pt-4 animate-fade-in" style={{ animationDelay: '1s' }}>
-          <Button
-            onClick={handleBrowseJobs}
-            className="w-full h-12 text-lg font-semibold transition-all duration-200 hover:scale-[1.02]"
-            size="lg"
-          >
-            <Search className="w-5 h-5 mr-2" />
-            Browse More Jobs
-          </Button>
-          
-          <Button
-            onClick={handleReferFriend}
-            variant="outline"
-            className="w-full h-12 text-lg font-semibold transition-all duration-200 hover:scale-[1.02]"
-            size="lg"
-          >
-            <Share2 className="w-5 h-5 mr-2" />
-            Refer a Friend
-          </Button>
-        </div>
+        {/* Main Congratulations Message */}
+        <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-primary to-secondary bg-clip-text text-transparent mb-6 leading-tight">
+          🎉 You did it, {userName}!
+        </h1>
+        
+        <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-8">
+          Your application is complete.
+        </h2>
 
-        {/* Footer Message */}
-        <p className="text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: '1.2s' }}>
-          Keep an eye on your email and phone for updates!
+        {/* Subtitle */}
+        <p className="text-lg md:text-xl text-muted-foreground mb-12 max-w-lg mx-auto leading-relaxed">
+          We've sent your info to our hiring team. You'll hear back soon!
         </p>
+
+        {/* CTA Button */}
+        <Button 
+          onClick={handleReturnToJobs}
+          size="lg"
+          className="text-lg px-8 py-6 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+        >
+          Return to Job Feed →
+        </Button>
+
+        {/* Success Badge */}
+        <div className="mt-16 inline-flex items-center gap-2 px-6 py-3 bg-primary/10 border border-primary/20 rounded-full text-primary font-medium">
+          <span className="text-2xl">🎯</span>
+          <span>Application Submitted Successfully</span>
+        </div>
       </div>
 
-      {/* Background Decoration */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-accent/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-      </div>
+      {/* Background decoration */}
+      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-primary/5 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-secondary/5 rounded-full blur-3xl animate-pulse delay-1000" />
     </div>
   );
 };
