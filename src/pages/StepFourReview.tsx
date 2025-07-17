@@ -12,45 +12,32 @@ const ReviewPage: React.FC<ReviewPageProps> = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const contextData = useApplicationFormData();
-  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  const onSubmit = async () => {
-    setSubmitting(true);
-    
-    try {
-      const submitResult = await contextData.submitApplication();
-      
-      if (submitResult.success) {
-        toast({
-          title: "🎉 Application submitted!",
-          description: "We'll review your application shortly",
-        });
-        
-        navigate("/apply/step-5", { 
-          state: { name: contextData.formData.fullName || "there" }
-        });
-      } else {
-        toast({
-          title: "❌ Submission failed",
-          description: "Please try again",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Submission error:", error);
-      toast({
-        title: "❌ Something went wrong",
-        description: "Please try again",
-        variant: "destructive",
+  // Auto-submit on page load
+  useEffect(() => {
+    if (!submitted && contextData.formData.fullName && !contextData.isLoading) {
+      setSubmitted(true);
+      contextData.submitApplication().then((res) => {
+        if (res.success) {
+          navigate("/apply/step-5", {
+            state: { name: contextData.formData.fullName || "there" },
+          });
+        } else {
+          toast({
+            title: "❌ Something went wrong",
+            description: "Please try again",
+            variant: "destructive",
+          });
+          setSubmitted(false);
+        }
       });
-    } finally {
-      setSubmitting(false);
     }
-  };
+  }, [submitted, contextData.formData.fullName, contextData.isLoading, contextData, navigate, toast]);
 
   if (contextData.isLoading) {
     return (
@@ -204,23 +191,14 @@ const ReviewPage: React.FC<ReviewPageProps> = () => {
         </Card>
       </div>
 
-      {/* Submit Button */}
+      {/* Auto-submitting indicator */}
       <div className="pt-8 pb-6">
-        <Button
-          onClick={onSubmit}
-          disabled={submitting || contextData.isLoading}
-          className="w-full h-14 text-lg font-semibold transition-all duration-200 hover:scale-[1.02]"
-          size="lg"
-        >
-          {submitting ? (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-              Submitting...
-            </div>
-          ) : (
-            "Looks Good – Submit →"
-          )}
-        </Button>
+        <div className="w-full h-14 flex items-center justify-center bg-primary/10 rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <span className="text-primary font-medium">Submitting your application...</span>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ const StepFiveSuccess = () => {
   });
 
   // Get name from location state, form data, or default to "there"
-  const userName = location.state?.name || 
+  const userName = (location.state as { name?: string })?.name || 
                    formData.fullName || 
                    "there";
 
