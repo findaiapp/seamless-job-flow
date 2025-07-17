@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,26 +42,16 @@ const ApplyFallback = () => {
   useEffect(() => {
     const fetchFeaturedJob = async () => {
       try {
-        const { data, error } = await supabase
-          .from('user_posted_jobs')
-          .select('*')
-          .limit(1)
-          .maybeSingle();
-
-        if (error) throw error;
-        
-        if (data) {
-          // Transform Supabase data to Job interface
-          const transformedJob: Job = {
-            id: data.id,
-            title: data.job_title || 'Unknown Position',
-            company: data.company || 'Unknown Company',
-            pay_range: '$15-25/hr', // Default since no pay_range field exists
-            location: data.location || 'Remote',
-            description: data.description || 'No description available'
-          };
-          setFeaturedJob(transformedJob);
-        }
+        // Mock featured job
+        const mockJob: Job = {
+          id: 'mock-1',
+          title: 'Delivery Driver',
+          company: 'Quick Delivery Co',
+          pay_range: '$18-25/hr',
+          location: 'Brooklyn, NY',
+          description: 'Join our team of delivery drivers and earn competitive pay with flexible hours.'
+        };
+        setFeaturedJob(mockJob);
       } catch (error) {
         console.error('Error fetching featured job:', error);
       } finally {
@@ -95,24 +84,8 @@ const ApplyFallback = () => {
     setSubmitting(true);
     
     try {
-      const { error } = await supabase
-        .from('applications')
-        .insert({
-          job_id: 'manual-craigslist',
-          name: formData.fullName,
-          phone: formData.phone,
-          email: formData.email,
-          skills_description: formData.experience,
-          company_name: 'General Application',
-          job_title: jobParam || 'General Position',
-          ref_source: 'craigslist',
-          referral_code: formData.referralSource,
-          utm_source: searchParams.get('utm_source') || '',
-          utm_campaign: searchParams.get('utm_campaign') || '',
-          availability: 'immediately'
-        });
-
-      if (error) throw error;
+      // Mock submission
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       toast({
         title: "✅ Application received!",

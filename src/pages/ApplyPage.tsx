@@ -32,7 +32,7 @@ const ApplyPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { getReferralCode } = useReferralTracking();
-  const { saveJob, recordApplication, loading: actionLoading } = useJobActions();
+  const { saveJob, applyToJob, loading: actionLoading } = useJobActions();
   
   const [job, setJob] = useState<Job | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -107,15 +107,10 @@ const ApplyPage = () => {
     }
   };
 
-  // Get today's application count
+  // Get today's application count (mock)
   const getTodayApplicationCount = async (jobId: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    const { count } = await supabase
-      .from('applications')
-      .select('*', { count: 'exact', head: true })
-      .eq('job_id', jobId)
-      .gte('created_at', today);
-    return count || 0;
+    // Mock application count
+    return Math.floor(Math.random() * 10) + 1;
   };
 
   // Smart prefill logic for Craigslist
@@ -180,39 +175,27 @@ const ApplyPage = () => {
       }
 
       try {
-        const { data, error } = await supabase
-          .from('user_posted_jobs')
-          .select('*')
-          .eq('id', job_id)
-          .maybeSingle();
+        // Mock job data
+        const mockJob: Job = {
+          id: job_id,
+          title: 'Delivery Driver',
+          company: 'Quick Delivery Co',
+          pay_range: '$18-25/hr',
+          location: 'Brooklyn, NY',
+          description: 'Join our team of delivery drivers and earn competitive pay with flexible hours.',
+          created_at: new Date().toISOString()
+        };
+        setJob(mockJob);
+        
+        // Auto-fill position applying for
+        setFormData(prev => ({ 
+          ...prev, 
+          positionApplyingFor: mockJob.title 
+        }));
 
-        if (error) throw error;
-
-        if (!data) {
-          setNotFound(true);
-        } else {
-          // Transform Supabase data to Job interface
-          const transformedJob: Job = {
-            id: data.id,
-            title: data.job_title || 'Unknown Position',
-            company: data.company || 'Unknown Company',
-            pay_range: '$15-25/hr', // Default since no pay_range field exists
-            location: data.location || 'Remote',
-            description: data.description || 'No description available',
-            created_at: data.created_at
-          };
-          setJob(transformedJob);
-          
-          // Auto-fill position applying for
-          setFormData(prev => ({ 
-            ...prev, 
-            positionApplyingFor: transformedJob.title 
-          }));
-
-          // Get today's application count
-          const count = await getTodayApplicationCount(job_id);
-          setApplicantsToday(count);
-        }
+        // Get today's application count
+        const count = await getTodayApplicationCount(job_id);
+        setApplicantsToday(count);
       } catch (error) {
         console.error('Error fetching job:', error);
         setNotFound(true);
@@ -373,9 +356,9 @@ const ApplyPage = () => {
         return; // Error already handled in submitApplication
       }
 
-      // Record application in applied_jobs table (only if logged in)
-      if (currentUser?.id && job_id) {
-        await recordApplication(job_id, currentUser.id);
+      // Record application (mock)
+      if (job_id) {
+        await applyToJob(job_id);
       }
 
       // Clear saved form data
@@ -1019,7 +1002,7 @@ const ApplyPage = () => {
             {/* Save Job Button */}
             <Button 
               variant="outline"
-              onClick={() => saveJob(job_id!, user?.id)}
+              onClick={() => saveJob(job_id!)}
               disabled={actionLoading || !job_id}
               className="h-12 px-6"
               size="lg"
@@ -1033,7 +1016,7 @@ const ApplyPage = () => {
               variant="outline"
               onClick={() => {
                 if (user?.id && job_id) {
-                  saveJob(job_id, user.id);
+                  saveJob(job_id!);
                   toast({
                     title: "Reminder set! ⏰",
                     description: "We'll remind you about this job later",

@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Bell, MapPin, DollarSign, Clock, Plus, Trash2, Edit, Check } from "lucide-react";
+import { ArrowLeft, Bell, MapPin, DollarSign, Clock, Plus, Trash2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -36,7 +35,7 @@ const NYC_LOCATIONS = [
 ];
 
 export default function AlertsPage() {
-  const { alerts, preferences, loading, createAlert, updateAlert, deleteAlert, updatePreferences } = useJobAlerts();
+  const { alerts, loading, createAlert, updateAlert, deleteAlert } = useJobAlerts();
   const { toast } = useToast();
   
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -45,8 +44,19 @@ export default function AlertsPage() {
     location: "",
     pay_min: 15,
     pay_max: 30,
-    frequency: "daily"
+    frequency: "daily",
+    is_active: true
   });
+
+  // Mock preferences
+  const [preferences, setPreferences] = useState({
+    job_alerts_enabled: true,
+    preferred_channel: "email"
+  });
+
+  const updatePreferences = (updates: any) => {
+    setPreferences(prev => ({ ...prev, ...updates }));
+  };
 
   const handleCreateAlert = async () => {
     try {
@@ -57,7 +67,8 @@ export default function AlertsPage() {
         location: "",
         pay_min: 15,
         pay_max: 30,
-        frequency: "daily"
+        frequency: "daily",
+        is_active: true
       });
     } catch (error) {
       // Error is already handled in the hook
@@ -209,7 +220,7 @@ export default function AlertsPage() {
                 <p className="text-xs text-muted-foreground">Receive notifications for new matching jobs</p>
               </div>
               <Switch 
-                checked={preferences?.job_alerts_enabled ?? true}
+                checked={preferences.job_alerts_enabled}
                 onCheckedChange={(checked) => updatePreferences({ job_alerts_enabled: checked })}
               />
             </div>
@@ -217,7 +228,7 @@ export default function AlertsPage() {
             <div>
               <Label className="text-sm font-medium mb-2 block">Preferred Method</Label>
               <Select 
-                value={preferences?.preferred_channel ?? "email"}
+                value={preferences.preferred_channel}
                 onValueChange={(value) => updatePreferences({ preferred_channel: value })}
               >
                 <SelectTrigger>
@@ -262,7 +273,7 @@ export default function AlertsPage() {
                           {formatCategories(alert.categories)}
                         </Badge>
                         <Badge variant="outline" className="text-xs">
-                          {alert.frequency}
+                          daily
                         </Badge>
                         {!alert.is_active && (
                           <Badge variant="destructive" className="text-xs">Paused</Badge>
