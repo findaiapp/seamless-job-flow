@@ -227,6 +227,8 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
         }
       });
 
+      console.log('✅ Application submission response:', response);
+
       if (response.error) {
         console.error('Submit error:', response.error);
         toast({
