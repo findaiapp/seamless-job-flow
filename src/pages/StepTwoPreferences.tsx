@@ -48,11 +48,11 @@ const StepTwoPreferences = () => {
     });
 
     await saveToSupabase();
-    navigate('/apply/step-3');
+    navigate('step-3');
   };
 
   const handleBack = () => {
-    navigate('/apply/step-1');
+    navigate('step-1');
   };
 
   return (
@@ -61,11 +61,11 @@ const StepTwoPreferences = () => {
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-muted-foreground">Step 2 of 4</span>
-            <span className="text-sm font-medium text-primary">50%</span>
+            <span className="text-sm font-medium text-muted-foreground">Step 2 of 5</span>
+            <span className="text-sm font-medium text-primary">40%</span>
           </div>
           <div className="w-full bg-secondary rounded-full h-2">
-            <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: '50%' }}></div>
+            <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: '40%' }}></div>
           </div>
         </div>
 

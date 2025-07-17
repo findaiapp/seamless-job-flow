@@ -39,7 +39,7 @@ const StepOnePersonalInfo = () => {
 
     // Auto-save progress
     await saveToSupabase();
-    navigate('/apply/step-2');
+    navigate('step-2');
   };
 
   return (
@@ -48,18 +48,18 @@ const StepOnePersonalInfo = () => {
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-muted-foreground">Step 1 of 4</span>
-            <span className="text-sm font-medium text-primary">25%</span>
+            <span className="text-sm font-medium text-muted-foreground">Step 1 of 5</span>
+            <span className="text-sm font-medium text-primary">20%</span>
           </div>
           <div className="w-full bg-secondary rounded-full h-2">
-            <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: '25%' }}></div>
+            <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: '20%' }}></div>
           </div>
         </div>
 
         <Card className="shadow-xl border-0 bg-card/95 backdrop-blur">
           <CardHeader className="text-center pb-6">
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-              Let's get started! ✨
+              Basic Info ✨
             </CardTitle>
             <p className="text-muted-foreground mt-2">
               Tell us a bit about yourself

@@ -10,12 +10,21 @@ import StepFiveSuccess from '@/pages/StepFiveSuccess';
 const ApplicationFlowRouter: React.FC = () => {
   return (
     <Routes>
-      {/* Redirect /apply to step 1 */}
-      <Route path="/" element={<Navigate to="/apply/step-1" replace />} />
+      {/* Redirect /apply/:job_id to step 1 with job_id preserved */}
+      <Route path="/:job_id" element={<Navigate to="step-1" replace />} />
+      <Route path="/" element={<Navigate to="step-1" replace />} />
       
-      {/* Protected Step Routes */}
+      {/* Step Routes - handle both /apply/step-X and /apply/:job_id/step-X */}
       <Route 
         path="/step-1" 
+        element={
+          <ApplicationStepGuard step={1}>
+            <StepOnePersonalInfo />
+          </ApplicationStepGuard>
+        } 
+      />
+      <Route 
+        path="/:job_id/step-1" 
         element={
           <ApplicationStepGuard step={1}>
             <StepOnePersonalInfo />
@@ -31,9 +40,25 @@ const ApplicationFlowRouter: React.FC = () => {
           </ApplicationStepGuard>
         } 
       />
+      <Route 
+        path="/:job_id/step-2" 
+        element={
+          <ApplicationStepGuard step={2}>
+            <StepTwoPreferences />
+          </ApplicationStepGuard>
+        } 
+      />
       
       <Route 
         path="/step-3" 
+        element={
+          <ApplicationStepGuard step={3}>
+            <StepThreeLocation />
+          </ApplicationStepGuard>
+        } 
+      />
+      <Route 
+        path="/:job_id/step-3" 
         element={
           <ApplicationStepGuard step={3}>
             <StepThreeLocation />
@@ -49,6 +74,14 @@ const ApplicationFlowRouter: React.FC = () => {
           </ApplicationStepGuard>
         } 
       />
+      <Route 
+        path="/:job_id/step-4" 
+        element={
+          <ApplicationStepGuard step={4}>
+            <StepFourReview />
+          </ApplicationStepGuard>
+        } 
+      />
       
       <Route 
         path="/step-5" 
@@ -58,9 +91,18 @@ const ApplicationFlowRouter: React.FC = () => {
           </ApplicationStepGuard>
         } 
       />
+      <Route 
+        path="/:job_id/step-5" 
+        element={
+          <ApplicationStepGuard step={5}>
+            <StepFiveSuccess />
+          </ApplicationStepGuard>
+        } 
+      />
       
-      {/* Fallback redirect */}
-      <Route path="*" element={<Navigate to="/apply/step-1" replace />} />
+      {/* Fallback redirects */}
+      <Route path="/:job_id" element={<Navigate to="step-1" replace />} />
+      <Route path="*" element={<Navigate to="step-1" replace />} />
     </Routes>
   );
 };

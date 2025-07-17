@@ -22,7 +22,7 @@ const StepFourReview = () => {
       setSubmitted(true);
       submitApplication().then((res) => {
         if (res.success) {
-          navigate("/apply/step-5", {
+          navigate("step-5", {
             state: { name: formData.fullName || "there" },
           });
         } else {
@@ -54,7 +54,7 @@ const StepFourReview = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-foreground mb-2">Please Complete Previous Steps</h2>
           <p className="text-muted-foreground mb-4">Let's start your application from the beginning.</p>
-          <Button onClick={() => navigate("/apply/step-1")}>
+          <Button onClick={() => navigate("step-1")}>
             Start Application →
           </Button>
         </div>
@@ -68,11 +68,11 @@ const StepFourReview = () => {
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-muted-foreground">Step 4 of 4</span>
-            <span className="text-sm font-medium text-primary">100%</span>
+            <span className="text-sm font-medium text-muted-foreground">Step 4 of 5</span>
+            <span className="text-sm font-medium text-primary">80%</span>
           </div>
           <div className="w-full bg-secondary rounded-full h-2">
-            <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: '100%' }}></div>
+            <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: '80%' }}></div>
           </div>
         </div>
 
@@ -80,7 +80,7 @@ const StepFourReview = () => {
           <CardContent className="p-6">
             <div className="text-center mb-6">
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent mb-2">
-                Review Your Application
+                Review Application 📋
               </h1>
               <p className="text-muted-foreground">
                 We're submitting your application now!
@@ -105,7 +105,7 @@ const StepFourReview = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate("/apply/step-1")}
+                      onClick={() => navigate("step-1")}
                       className="p-2"
                     >
                       <Edit className="h-4 w-4" />
@@ -133,7 +133,7 @@ const StepFourReview = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate("/apply/step-1")}
+                      onClick={() => navigate("step-1")}
                       className="p-2"
                     >
                       <Edit className="h-4 w-4" />
@@ -161,7 +161,7 @@ const StepFourReview = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate("/apply/step-2")}
+                      onClick={() => navigate("step-2")}
                       className="p-2"
                     >
                       <Edit className="h-4 w-4" />
@@ -191,7 +191,7 @@ const StepFourReview = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate("/apply/step-3")}
+                      onClick={() => navigate("step-3")}
                       className="p-2"
                     >
                       <Edit className="h-4 w-4" />

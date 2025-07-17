@@ -46,11 +46,11 @@ const StepThreeLocation = () => {
     });
 
     await saveToSupabase();
-    navigate('/apply/step-4');
+    navigate('step-4');
   };
 
   const handleBack = () => {
-    navigate('/apply/step-2');
+    navigate('step-2');
   };
 
   return (
@@ -59,11 +59,11 @@ const StepThreeLocation = () => {
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-muted-foreground">Step 3 of 4</span>
-            <span className="text-sm font-medium text-primary">75%</span>
+            <span className="text-sm font-medium text-muted-foreground">Step 3 of 5</span>
+            <span className="text-sm font-medium text-primary">60%</span>
           </div>
           <div className="w-full bg-secondary rounded-full h-2">
-            <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: '75%' }}></div>
+            <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: '60%' }}></div>
           </div>
         </div>
 

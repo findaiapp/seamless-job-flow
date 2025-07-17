@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useApplicationFormData } from '@/hooks/useApplicationFormData';
+import { useApplicationForm } from '@/contexts/ApplicationFormContext';
 import { Button } from '@/components/ui/button';
 import { CheckCircle } from 'lucide-react';
 import Confetti from 'react-confetti';
@@ -8,7 +8,7 @@ import Confetti from 'react-confetti';
 const StepFiveSuccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { formData } = useApplicationFormData();
+  const { formData, resetForm } = useApplicationForm();
   const [showConfetti, setShowConfetti] = useState(true);
   const [windowDimensions, setWindowDimensions] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
@@ -46,6 +46,7 @@ const StepFiveSuccess = () => {
   }, []);
 
   const handleReturnToJobs = () => {
+    resetForm(); // Reset the form for next application
     navigate('/search-jobs');
   };
 

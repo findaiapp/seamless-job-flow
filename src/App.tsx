@@ -37,7 +37,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/search-jobs" element={<SearchJobsPage />} />
-              <Route path="/apply/:job_id" element={<ApplyPage />} />
+              <Route path="/apply/:job_id" element={<ApplicationFlowRouter />} />
               <Route path="/apply" element={<ApplyFallback />} />
               <Route path="/apply/*" element={<ApplicationFlowRouter />} />
               <Route path="/post-job" element={<PostJobPage />} />
