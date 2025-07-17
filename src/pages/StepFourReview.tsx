@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,32 +6,32 @@ import { useApplicationFormData } from "@/hooks/useApplicationFormData";
 import { useToast } from "@/hooks/use-toast";
 import { User, Mail, Briefcase, MapPin, Edit } from "lucide-react";
 
-const StepFourReview = () => {
+interface ReviewPageProps {}
+
+const ReviewPage: React.FC<ReviewPageProps> = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { formData, submitApplication, isLoading } = useApplicationFormData();
-  
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const contextData = useApplicationFormData();
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Scroll to top on mount
     window.scrollTo(0, 0);
   }, []);
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
+  const onSubmit = async () => {
+    setSubmitting(true);
     
     try {
-      const result = await submitApplication();
+      const submitResult = await contextData.submitApplication();
       
-      if (result.success) {
+      if (submitResult.success) {
         toast({
           title: "🎉 Application submitted!",
           description: "We'll review your application shortly",
         });
         
         navigate("/apply/step-5", { 
-          state: { name: formData.fullName || "there" }
+          state: { name: contextData.formData.fullName || "there" }
         });
       } else {
         toast({
@@ -48,11 +48,11 @@ const StepFourReview = () => {
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
-  if (isLoading) {
+  if (contextData.isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex items-center gap-2">
@@ -63,7 +63,7 @@ const StepFourReview = () => {
     );
   }
 
-  if (!formData.fullName || !formData.email) {
+  if (!contextData.formData.fullName || !contextData.formData.email) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <div className="text-center">
@@ -76,6 +76,8 @@ const StepFourReview = () => {
       </div>
     );
   }
+
+  const userData = contextData.formData;
 
   return (
     <div className="min-h-screen bg-background flex flex-col px-4 py-6 md:px-6 md:py-8">
@@ -100,7 +102,7 @@ const StepFourReview = () => {
                 <div>
                   <h3 className="font-semibold text-foreground">Personal Information</h3>
                   <p className="text-sm text-muted-foreground">
-                    {formData.fullName || "Not provided"}
+                    {userData.fullName || "Not provided"}
                   </p>
                 </div>
               </div>
@@ -125,11 +127,11 @@ const StepFourReview = () => {
                 <div>
                   <h3 className="font-semibold text-foreground">Contact Information</h3>
                   <p className="text-sm text-muted-foreground">
-                    {formData.email || "Not provided"}
+                    {userData.email || "Not provided"}
                   </p>
-                  {formData.phone && (
+                  {userData.phone && (
                     <p className="text-sm text-muted-foreground">
-                      {formData.phone}
+                      {userData.phone}
                     </p>
                   )}
                 </div>
@@ -155,11 +157,11 @@ const StepFourReview = () => {
                 <div>
                   <h3 className="font-semibold text-foreground">Job Preferences</h3>
                   <p className="text-sm text-muted-foreground">
-                    {formData.jobType || "Not specified"}
+                    {userData.jobType || "Not specified"}
                   </p>
-                  {formData.schedule && (
+                  {userData.schedule && (
                     <p className="text-sm text-muted-foreground">
-                      {formData.schedule} - {formData.availability}
+                      {userData.schedule} - {userData.availability}
                     </p>
                   )}
                 </div>
@@ -185,7 +187,7 @@ const StepFourReview = () => {
                 <div>
                   <h3 className="font-semibold text-foreground">Preferred Location</h3>
                   <p className="text-sm text-muted-foreground">
-                    {formData.neighborhood ? `${formData.city}, ${formData.neighborhood}` : formData.city || "Not specified"}
+                    {userData.neighborhood ? `${userData.city}, ${userData.neighborhood}` : userData.city || "Not specified"}
                   </p>
                 </div>
               </div>
@@ -202,15 +204,15 @@ const StepFourReview = () => {
         </Card>
       </div>
 
-      {/* Submit Button - Pinned to bottom */}
+      {/* Submit Button */}
       <div className="pt-8 pb-6">
         <Button
-          onClick={handleSubmit}
-          disabled={isSubmitting || isLoading}
+          onClick={onSubmit}
+          disabled={submitting || contextData.isLoading}
           className="w-full h-14 text-lg font-semibold transition-all duration-200 hover:scale-[1.02]"
           size="lg"
         >
-          {isSubmitting ? (
+          {submitting ? (
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
               Submitting...
@@ -224,4 +226,5 @@ const StepFourReview = () => {
   );
 };
 
+const StepFourReview = ReviewPage;
 export default StepFourReview;
