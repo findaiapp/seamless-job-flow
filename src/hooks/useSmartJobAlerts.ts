@@ -29,13 +29,13 @@ export function useSmartJobAlerts(user: User | null) {
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  // Load user's alerts (mock implementation)
+  // Load user's alerts (mock implementation - no database calls)
   const loadAlerts = async () => {
     if (!user) return;
     
     setLoading(true);
     try {
-      // Mock alerts data
+      // Mock alerts data - purely client-side
       const mockAlerts: JobAlert[] = [
         {
           id: '1',

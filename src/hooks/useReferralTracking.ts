@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 
 export const useReferralTracking = () => {
   const [searchParams] = useSearchParams();
@@ -15,7 +14,7 @@ export const useReferralTracking = () => {
         // Store referral in localStorage for later use
         localStorage.setItem('referral_code', ref);
         
-        // Mock referral tracking
+        // Mock referral tracking - no database calls
         console.log('Referral tracked:', ref, 'on page:', location.pathname);
       } catch (error) {
         console.error('Error tracking referral:', error);

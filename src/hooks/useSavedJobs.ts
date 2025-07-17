@@ -15,7 +15,7 @@ export const useSavedJobs = (user: User | null) => {
   }, [user]);
 
   const toggleSavedJob = async (jobId: string) => {
-    // Mock implementation using localStorage only
+    // Mock implementation using localStorage only - no database calls
     const currentSet = user ? savedJobs : localSavedJobs;
     const newSet = new Set(currentSet);
     
