@@ -48,13 +48,13 @@ const StepFourReferral = () => {
     if (saved) {
       // Navigate to step 5 (review)
       if (goToStep(5)) {
-        navigate('step-5');
+        navigate('../step-5');
       }
     }
   };
 
   const handleBack = () => {
-    navigate('step-3');
+    navigate('../step-3');
   };
 
   return (

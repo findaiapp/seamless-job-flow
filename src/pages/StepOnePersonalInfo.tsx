@@ -41,7 +41,7 @@ const StepOnePersonalInfo = () => {
     if (saved) {
       // Navigate to step 2
       if (goToStep(2)) {
-        navigate('step-2');
+        navigate('../step-2');
       }
     }
   };

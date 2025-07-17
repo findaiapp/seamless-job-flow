@@ -22,7 +22,7 @@ const StepFiveReview = () => {
       setSubmitted(true);
       submitApplication().then((success) => {
         if (success) {
-          navigate("success", {
+          navigate("../success", {
             state: { name: formData.fullName || "there" },
           });
         } else {
@@ -54,7 +54,7 @@ const StepFiveReview = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-foreground mb-2">Please Complete Previous Steps</h2>
           <p className="text-muted-foreground mb-4">Let's start your application from the beginning.</p>
-          <Button onClick={() => navigate("step-1")}>
+          <Button onClick={() => navigate("../step-1")}>
             Start Application →
           </Button>
         </div>
@@ -105,7 +105,7 @@ const StepFiveReview = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate("step-1")}
+                      onClick={() => navigate("../step-1")}
                       className="p-2"
                     >
                       <Edit className="h-4 w-4" />
@@ -133,7 +133,7 @@ const StepFiveReview = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate("step-1")}
+                      onClick={() => navigate("../step-1")}
                       className="p-2"
                     >
                       <Edit className="h-4 w-4" />
@@ -161,7 +161,7 @@ const StepFiveReview = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate("step-2")}
+                      onClick={() => navigate("../step-2")}
                       className="p-2"
                     >
                       <Edit className="h-4 w-4" />
@@ -191,7 +191,7 @@ const StepFiveReview = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate("step-4")}
+                      onClick={() => navigate("../step-4")}
                       className="p-2"
                     >
                       <Edit className="h-4 w-4" />

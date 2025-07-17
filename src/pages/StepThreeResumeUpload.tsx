@@ -107,13 +107,13 @@ const StepThreeResumeUpload = () => {
     if (saved) {
       // Navigate to step 4
       if (goToStep(4)) {
-        navigate('step-4');
+        navigate('../step-4');
       }
     }
   };
 
   const handleBack = () => {
-    navigate('step-2');
+    navigate('../step-2');
   };
 
   const removeFile = () => {

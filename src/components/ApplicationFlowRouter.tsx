@@ -30,11 +30,19 @@ const ApplicationFlowRouter: React.FC = () => {
 
   const fetchJobData = async (jobId: string) => {
     try {
-      const { data: job, error } = await supabase
+      // First try the jobs table
+      let { data: job, error } = await supabase
         .from('jobs')
         .select('*')
         .eq('id', jobId)
         .single();
+
+      // If not found in jobs table, handle gracefully
+      if (error && error.code === 'PGRST116') {
+        console.log('Job not found in jobs table:', jobId);
+        setJobData(null);
+        return;
+      }
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching job:', error);

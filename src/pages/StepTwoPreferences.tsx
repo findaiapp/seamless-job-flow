@@ -50,13 +50,13 @@ const StepTwoPreferences = () => {
     if (saved) {
       // Navigate to step 3
       if (goToStep(3)) {
-        navigate('step-3');
+        navigate('../step-3');
       }
     }
   };
 
   const handleBack = () => {
-    navigate('step-1');
+    navigate('../step-1');
   };
 
   return (
