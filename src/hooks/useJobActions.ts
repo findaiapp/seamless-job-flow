@@ -4,6 +4,7 @@ interface UseJobActionsReturn {
   saveJob: (jobId: string) => Promise<boolean>;
   unsaveJob: (jobId: string) => Promise<boolean>;
   applyToJob: (jobId: string, applicationData?: any) => Promise<boolean>;
+  recordApplication: (jobId: string, applicationData?: any) => Promise<boolean>;
   savedJobs: Set<string>;
   appliedJobs: Set<string>;
   loading: boolean;
@@ -60,10 +61,16 @@ export function useJobActions(): UseJobActionsReturn {
     }
   }, []);
 
+  const recordApplication = useCallback(async (jobId: string, applicationData?: any): Promise<boolean> => {
+    // Mock implementation - same as applyToJob
+    return applyToJob(jobId, applicationData);
+  }, [applyToJob]);
+
   return {
     saveJob,
     unsaveJob,
     applyToJob,
+    recordApplication,
     savedJobs,
     appliedJobs,
     loading

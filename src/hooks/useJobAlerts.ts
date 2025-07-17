@@ -18,11 +18,21 @@ interface UseJobAlertsReturn {
   updateAlert: (id: string, alertData: Partial<JobAlert>) => Promise<boolean>;
   deleteAlert: (id: string) => Promise<boolean>;
   loadAlerts: () => Promise<void>;
+  preferences: {
+    job_alerts_enabled: boolean;
+    preferred_channel: string;
+    phone_number?: string;
+  };
+  updatePreferences: (updates: any) => void;
 }
 
 export function useJobAlerts(): UseJobAlertsReturn {
   const [alerts, setAlerts] = useState<JobAlert[]>([]);
   const [loading, setLoading] = useState(false);
+  const [preferences, setPreferences] = useState({
+    job_alerts_enabled: true,
+    preferred_channel: "email"
+  });
 
   const loadAlerts = useCallback(async () => {
     try {
@@ -95,12 +105,18 @@ export function useJobAlerts(): UseJobAlertsReturn {
     }
   }, []);
 
+  const updatePreferences = useCallback((updates: any) => {
+    setPreferences(prev => ({ ...prev, ...updates }));
+  }, []);
+
   return {
     alerts,
     loading,
     createAlert,
     updateAlert,
     deleteAlert,
-    loadAlerts
+    loadAlerts,
+    preferences,
+    updatePreferences
   };
 }
