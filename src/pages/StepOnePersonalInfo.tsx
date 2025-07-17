@@ -39,7 +39,7 @@ const StepOnePersonalInfo = () => {
 
     // Auto-save progress
     await saveToSupabase();
-    navigate('step-2');
+    navigate('../step-2');
   };
 
   return (

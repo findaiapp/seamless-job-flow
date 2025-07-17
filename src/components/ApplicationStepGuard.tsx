@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApplicationFormData } from '@/hooks/useApplicationFormData';
+import { useApplicationForm } from '@/contexts/ApplicationFormContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface ApplicationStepGuardProps {
@@ -10,7 +10,7 @@ interface ApplicationStepGuardProps {
 
 const ApplicationStepGuard: React.FC<ApplicationStepGuardProps> = ({ step, children }) => {
   const navigate = useNavigate();
-  const { canAccessStep, formData } = useApplicationFormData();
+  const { canAccessStep } = useApplicationForm();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,10 +31,10 @@ const ApplicationStepGuard: React.FC<ApplicationStepGuardProps> = ({ step, child
 
       // Show appropriate message
       const stepNames = {
-        1: 'Personal Information',
-        2: 'Job Preferences', 
-        3: 'Location',
-        4: 'Review',
+        1: 'Basic Info',
+        2: 'Skills & Availability', 
+        3: 'Resume & Experience',
+        4: 'Review Application',
         5: 'Success'
       };
 
@@ -44,17 +44,17 @@ const ApplicationStepGuard: React.FC<ApplicationStepGuardProps> = ({ step, child
         variant: 'destructive',
       });
 
-      // Redirect to the correct step
-      navigate(`/apply/step-${redirectStep}`);
+      // Redirect to the correct step  
+      navigate(`../step-${redirectStep}`);
       return;
     }
 
     // Track progress analytics
     const stepNames = {
-      1: 'Personal Information',
-      2: 'Job Preferences', 
-      3: 'Location',
-      4: 'Review',
+      1: 'Basic Info',
+      2: 'Skills & Availability', 
+      3: 'Resume & Experience',
+      4: 'Review Application',
       5: 'Success'
     };
     console.log(`📊 User accessed Step ${step}:`, stepNames[step as keyof typeof stepNames]);

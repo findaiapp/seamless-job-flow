@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
-const StepThreeLocation = () => {
+const StepFourReferral = () => {
   const navigate = useNavigate();
   const { formData, updateFormData, saveToSupabase, isLoading } = useApplicationForm();
   const { toast } = useToast();
@@ -42,15 +42,15 @@ const StepThreeLocation = () => {
     updateFormData({
       referralCode: referralCode.trim(),
       source,
-      currentStep: 4,
+      currentStep: 5,
     });
 
     await saveToSupabase();
-    navigate('step-4');
+    navigate('../step-5');
   };
 
   const handleBack = () => {
-    navigate('step-2');
+    navigate('../step-3');
   };
 
   return (
@@ -59,11 +59,11 @@ const StepThreeLocation = () => {
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-muted-foreground">Step 3 of 5</span>
-            <span className="text-sm font-medium text-primary">60%</span>
+            <span className="text-sm font-medium text-muted-foreground">Step 4 of 5</span>
+            <span className="text-sm font-medium text-primary">80%</span>
           </div>
           <div className="w-full bg-secondary rounded-full h-2">
-            <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: '60%' }}></div>
+            <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: '80%' }}></div>
           </div>
         </div>
 
@@ -144,4 +144,4 @@ const StepThreeLocation = () => {
   );
 };
 
-export default StepThreeLocation;
+export default StepFourReferral;

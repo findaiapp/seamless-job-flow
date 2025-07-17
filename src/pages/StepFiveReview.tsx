@@ -6,7 +6,7 @@ import { useApplicationForm } from "@/contexts/ApplicationFormContext";
 import { useToast } from "@/hooks/use-toast";
 import { User, Phone, MapPin, Briefcase, Clock, Link, Gift, Edit } from "lucide-react";
 
-const StepFourReview = () => {
+const StepFiveReview = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { formData, submitApplication, isLoading } = useApplicationForm();
@@ -22,7 +22,7 @@ const StepFourReview = () => {
       setSubmitted(true);
       submitApplication().then((res) => {
         if (res.success) {
-          navigate("step-5", {
+          navigate("../success", {
             state: { name: formData.fullName || "there" },
           });
         } else {
@@ -54,7 +54,7 @@ const StepFourReview = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-foreground mb-2">Please Complete Previous Steps</h2>
           <p className="text-muted-foreground mb-4">Let's start your application from the beginning.</p>
-          <Button onClick={() => navigate("step-1")}>
+          <Button onClick={() => navigate("../step-1")}>
             Start Application →
           </Button>
         </div>
@@ -68,11 +68,11 @@ const StepFourReview = () => {
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-muted-foreground">Step 4 of 5</span>
-            <span className="text-sm font-medium text-primary">80%</span>
+            <span className="text-sm font-medium text-muted-foreground">Step 5 of 5</span>
+            <span className="text-sm font-medium text-primary">100%</span>
           </div>
           <div className="w-full bg-secondary rounded-full h-2">
-            <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: '80%' }}></div>
+            <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: '100%' }}></div>
           </div>
         </div>
 
@@ -105,7 +105,7 @@ const StepFourReview = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate("step-1")}
+                      onClick={() => navigate("../step-1")}
                       className="p-2"
                     >
                       <Edit className="h-4 w-4" />
@@ -133,7 +133,7 @@ const StepFourReview = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate("step-1")}
+                      onClick={() => navigate("../step-1")}
                       className="p-2"
                     >
                       <Edit className="h-4 w-4" />
@@ -161,7 +161,7 @@ const StepFourReview = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate("step-2")}
+                      onClick={() => navigate("../step-2")}
                       className="p-2"
                     >
                       <Edit className="h-4 w-4" />
@@ -191,7 +191,7 @@ const StepFourReview = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate("step-3")}
+                      onClick={() => navigate("../step-4")}
                       className="p-2"
                     >
                       <Edit className="h-4 w-4" />
@@ -217,4 +217,4 @@ const StepFourReview = () => {
   );
 };
 
-export default StepFourReview;
+export default StepFiveReview;

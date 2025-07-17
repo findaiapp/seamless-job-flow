@@ -88,8 +88,9 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
   const determineCurrentStep = (app: any): number => {
     if (!app.full_name || !app.phone || !app.location) return 1;
     if (!app.skills || !app.availability) return 2;
-    if (!app.source) return 3;
-    return 4;
+    // Step 3 is resume upload (optional)
+    if (!app.source) return 4;
+    return 5;
   };
 
   const updateFormData = (data: Partial<ApplicationFormData>) => {
@@ -171,22 +172,12 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
   };
 
   const canAccessStep = (step: number): boolean => {
-    const { fullName, phone, location, skills, availability, source } = formData;
-    
-    switch (step) {
-      case 1:
-        return true;
-      case 2:
-        return !!(fullName && phone && location);
-      case 3:
-        return !!(fullName && phone && location && skills && availability);
-      case 4:
-        return !!(fullName && phone && location && skills && availability && source);
-      case 5:
-        return formData.isSubmitted;
-      default:
-        return false;
-    }
+    if (step === 1) return true;
+    if (step === 2) return !!formData.fullName && !!formData.phone && !!formData.location;
+    if (step === 3) return !!formData.skills && !!formData.availability;
+    if (step === 4) return true; // Resume step is optional, anyone who completed step 2 can access
+    if (step === 5) return !!formData.source;
+    return false;
   };
 
   const resetForm = () => {

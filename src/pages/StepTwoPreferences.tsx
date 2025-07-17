@@ -16,7 +16,7 @@ const StepTwoPreferences = () => {
 
   const [skills, setSkills] = useState(formData.skills);
   const [availability, setAvailability] = useState(formData.availability);
-  const [resumeUrl, setResumeUrl] = useState(formData.resumeUrl);
+  
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -43,16 +43,15 @@ const StepTwoPreferences = () => {
     updateFormData({
       skills: skills.trim(),
       availability,
-      resumeUrl: resumeUrl.trim(),
       currentStep: 3,
     });
 
     await saveToSupabase();
-    navigate('step-3');
+    navigate('../step-3');
   };
 
   const handleBack = () => {
-    navigate('step-1');
+    navigate('../step-1');
   };
 
   return (
@@ -111,19 +110,6 @@ const StepTwoPreferences = () => {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="resumeUrl" className="text-sm font-medium">
-                Resume/Portfolio URL <span className="text-muted-foreground">(optional)</span>
-              </Label>
-              <Input
-                id="resumeUrl"
-                type="url"
-                placeholder="https://your-resume-link.com"
-                value={resumeUrl}
-                onChange={(e) => setResumeUrl(e.target.value)}
-                className="h-12"
-              />
-            </div>
 
             <div className="flex gap-3 mt-8">
               <Button
