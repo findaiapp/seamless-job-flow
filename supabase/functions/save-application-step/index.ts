@@ -32,68 +32,117 @@ Deno.serve(async (req) => {
       job_id
     } = await req.json()
 
-    console.log('Saving application step:', { application_id, step_number })
+    console.log('Saving application step:', { application_id, step_number, job_id })
 
-    let applicationData: any = {}
+    // Get job details for caching
+    let jobTitle = ''
+    let jobType = ''
+    let jobLocation = ''
     
-    // Build update data based on step
+    if (job_id) {
+      const { data: jobData } = await supabase
+        .from('jobs')
+        .select('title, job_type, location')
+        .eq('id', job_id)
+        .single()
+      
+      if (jobData) {
+        jobTitle = jobData.title || ''
+        jobType = jobData.job_type || ''
+        jobLocation = jobData.location || ''
+      }
+    }
+
+    let jobApplicationData: any = {
+      application_status: 'in_progress'
+    }
+    
+    // Build update data based on step for job_applications table
     if (step_number === 1 && (full_name || phone_number || location)) {
-      applicationData = { 
-        full_name: full_name || undefined,
-        phone_number: phone_number || undefined, 
-        location: location || undefined,
-        step_status: Math.max(step_number, applicationData.step_status || 1)
+      jobApplicationData = { 
+        ...jobApplicationData,
+        first_name: full_name || undefined,
+        phone_number: phone_number || undefined,
+        job_id: job_id || undefined,
+        job_title: jobTitle || undefined,
+        job_type: jobType || undefined,
+        location: jobLocation || undefined
       }
     }
     
     if (step_number === 2 && (skills || availability)) {
-      applicationData = { 
-        skills: skills || undefined,
-        availability: availability || undefined,
-        step_status: Math.max(step_number, applicationData.step_status || 1)
+      jobApplicationData = { 
+        ...jobApplicationData,
+        resume_text: skills || undefined // Store skills as resume text
       }
     }
     
     if (step_number === 3 && resume_url) {
-      applicationData = { 
-        resume_url,
-        step_status: Math.max(step_number, applicationData.step_status || 1)
+      // Resume URL handling - could extract text here in the future
+      jobApplicationData = { 
+        ...jobApplicationData
       }
     }
     
     if (step_number === 4 && (ref_code || email)) {
-      applicationData = { 
-        ref_code: ref_code || undefined,
-        email: email || undefined,
-        step_status: Math.max(step_number, applicationData.step_status || 1)
+      jobApplicationData = { 
+        ...jobApplicationData,
+        email: email || undefined
       }
-    }
-
-    // Add job_id if provided
-    if (job_id) {
-      applicationData.job_id = job_id
     }
 
     let result
     
     if (application_id) {
-      // Update existing application
-      const { data, error } = await supabase
-        .from('applications')
-        .update(applicationData)
+      // Try to update existing job application
+      const { data: existing } = await supabase
+        .from('job_applications')
+        .select('id')
         .eq('id', application_id)
-        .select()
         .single()
       
-      if (error) throw error
-      result = data
+      if (existing) {
+        // Update existing job application
+        const { data, error } = await supabase
+          .from('job_applications')
+          .update(jobApplicationData)
+          .eq('id', application_id)
+          .select()
+          .single()
+        
+        if (error) throw error
+        result = data
+      } else {
+        // Create new job application
+        const { data, error } = await supabase
+          .from('job_applications')
+          .insert([{
+            ...jobApplicationData,
+            first_name: full_name || 'Incomplete',
+            phone_number: phone_number || '',
+            job_id: job_id || '',
+            job_title: jobTitle,
+            job_type: jobType,
+            location: jobLocation
+          }])
+          .select()
+          .single()
+        
+        if (error) throw error
+        result = data
+      }
     } else {
-      // Create new application
+      // Create new job application
       const { data, error } = await supabase
-        .from('applications')
+        .from('job_applications')
         .insert([{
-          ...applicationData,
-          full_name: full_name || 'Incomplete'
+          ...jobApplicationData,
+          first_name: full_name || 'Incomplete',
+          phone_number: phone_number || '',
+          job_id: job_id || '',
+          job_title: jobTitle,
+          job_type: jobType,
+          location: jobLocation
         }])
         .select()
         .single()
@@ -102,17 +151,54 @@ Deno.serve(async (req) => {
       result = data
     }
 
-    // Log the step
-    const { error: logError } = await supabase
-      .from('application_log')
-      .insert([{
-        application_id: result.id,
-        step_number,
-        step_data: step_data || {}
-      }])
+    // Also save to legacy applications table for backwards compatibility
+    let legacyApplicationData: any = {}
+    
+    if (step_number === 1 && (full_name || phone_number || location)) {
+      legacyApplicationData = { 
+        full_name: full_name || undefined,
+        phone_number: phone_number || undefined, 
+        location: location || undefined
+      }
+    }
+    
+    if (step_number === 2 && (skills || availability)) {
+      legacyApplicationData = { 
+        skills: skills || undefined,
+        availability: availability || undefined
+      }
+    }
+    
+    if (step_number === 3 && resume_url) {
+      legacyApplicationData = { 
+        resume_url
+      }
+    }
+    
+    if (step_number === 4 && (ref_code || email)) {
+      legacyApplicationData = { 
+        ref_code: ref_code || undefined,
+        email: email || undefined
+      }
+    }
 
-    if (logError) {
-      console.error('Log error:', logError)
+    if (job_id) {
+      legacyApplicationData.job_id = job_id
+    }
+
+    // Try to save to legacy table - don't fail if it doesn't work
+    try {
+      if (Object.keys(legacyApplicationData).length > 0) {
+        await supabase
+          .from('applications')
+          .upsert([{
+            id: application_id,
+            ...legacyApplicationData,
+            full_name: full_name || 'Incomplete'
+          }])
+      }
+    } catch (legacyError) {
+      console.error('Legacy save error (non-critical):', legacyError)
     }
 
     return new Response(JSON.stringify({ 

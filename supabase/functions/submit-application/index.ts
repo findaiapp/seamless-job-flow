@@ -27,12 +27,58 @@ Deno.serve(async (req) => {
       resume_url, 
       ref_code, 
       job_id, 
-      source = 'direct' 
+      source = 'direct',
+      utm_source,
+      utm_campaign,
+      utm_medium
     } = await req.json()
 
     console.log('Submitting application:', { full_name, job_id, email })
 
-    // Insert application
+    // Get job details for caching
+    let jobTitle = ''
+    let jobType = ''
+    let jobLocation = ''
+    
+    if (job_id) {
+      const { data: jobData } = await supabase
+        .from('jobs')
+        .select('title, job_type, location')
+        .eq('id', job_id)
+        .single()
+      
+      if (jobData) {
+        jobTitle = jobData.title || ''
+        jobType = jobData.job_type || ''
+        jobLocation = jobData.location || ''
+      }
+    }
+
+    // Insert into new job_applications table
+    const { data: jobApplication, error: jobAppError } = await supabase
+      .from('job_applications')
+      .insert([{
+        job_id,
+        job_title: jobTitle,
+        job_type: jobType,
+        location: jobLocation,
+        first_name: full_name,
+        phone_number,
+        email,
+        resume_text: skills, // Store skills/experience as resume text for now
+        application_status: 'submitted',
+        source: utm_source || source,
+        applied_at: new Date().toISOString()
+      }])
+      .select()
+      .single()
+
+    if (jobAppError) {
+      console.error('Job application error:', jobAppError)
+      throw jobAppError
+    }
+
+    // Also insert into legacy applications table for backwards compatibility
     const { data: application, error: appError } = await supabase
       .from('applications')
       .insert([{
@@ -45,49 +91,39 @@ Deno.serve(async (req) => {
         resume_url,
         ref_code,
         job_id,
-        step_status: 5,
-        completed_at: new Date().toISOString(),
-        source
+        source: utm_source || source
       }])
       .select()
       .single()
 
     if (appError) {
-      console.error('Application error:', appError)
-      throw appError
+      console.error('Legacy application error:', appError)
+      // Don't throw error for legacy table - job_applications is primary
     }
 
-    // Create job application link
-    if (job_id) {
-      const { error: jobAppError } = await supabase
-        .from('job_applications')
+    // Handle attribution if UTM data provided
+    if (utm_source && phone_number) {
+      const { error: attributionError } = await supabase
+        .from('sms_attributions')
         .insert([{
-          job_id,
-          application_id: application.id,
-          status: 'pending'
+          event_type: 'apply',
+          phone_number: phone_number,
+          value: 1,
+          converted_url: `${Deno.env.get('SUPABASE_URL')}/apply/${job_id}`,
+          timestamp: new Date().toISOString()
         }])
 
-      if (jobAppError) {
-        console.error('Job application link error:', jobAppError)
+      if (attributionError) {
+        console.error('Attribution error:', attributionError)
+        // Don't throw - attribution is optional
       }
-    }
-
-    // Log completion
-    const { error: logError } = await supabase
-      .from('application_log')
-      .insert([{
-        application_id: application.id,
-        step_number: 5,
-        step_data: { submitted: true, completed_at: new Date().toISOString() }
-      }])
-
-    if (logError) {
-      console.error('Log error:', logError)
     }
 
     return new Response(JSON.stringify({ 
       success: true, 
-      application_id: application.id 
+      application_id: jobApplication.id,
+      job_application_id: jobApplication.id,
+      legacy_application_id: application?.id
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

@@ -59,7 +59,7 @@ const SuccessPage = () => {
             title: "Redirecting you back to search...",
             description: "Find more opportunities!",
           });
-          navigate('/search');
+          navigate('/');
           return 0;
         }
         return prev - 1;
@@ -75,7 +75,7 @@ const SuccessPage = () => {
   }, [navigate, resetForm, toast]);
 
   const handleBackToSearch = () => {
-    navigate('/search');
+    navigate('/');
   };
 
   const handleViewApplication = () => {

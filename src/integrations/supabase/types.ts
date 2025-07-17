@@ -193,6 +193,65 @@ export type Database = {
           },
         ]
       }
+      job_applications: {
+        Row: {
+          application_status: string
+          applied_at: string
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          job_id: string
+          job_title: string | null
+          job_type: string | null
+          location: string | null
+          phone_number: string
+          resume_text: string | null
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          application_status?: string
+          applied_at?: string
+          created_at?: string
+          email?: string | null
+          first_name: string
+          id?: string
+          job_id: string
+          job_title?: string | null
+          job_type?: string | null
+          location?: string | null
+          phone_number: string
+          resume_text?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          application_status?: string
+          applied_at?: string
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          job_id?: string
+          job_title?: string | null
+          job_type?: string | null
+          location?: string | null
+          phone_number?: string
+          resume_text?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_job_applications_job_id"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           application_link: string | null

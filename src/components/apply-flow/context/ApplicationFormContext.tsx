@@ -217,6 +217,12 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
 
     setIsLoading(true);
     try {
+      // Extract UTM parameters from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const utmSource = urlParams.get('utm_source');
+      const utmCampaign = urlParams.get('utm_campaign');
+      const utmMedium = urlParams.get('utm_medium');
+
       const response = await supabase.functions.invoke('submit-application', {
         body: {
           full_name: formData.fullName,
@@ -228,7 +234,10 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
           resume_url: formData.resumeUrl,
           ref_code: formData.referralCode,
           job_id: formData.jobId,
-          source: 'application_flow'
+          source: 'application_flow',
+          utm_source: utmSource,
+          utm_campaign: utmCampaign,
+          utm_medium: utmMedium
         }
       });
 
@@ -259,7 +268,7 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
       setFormData(prev => ({
         ...prev,
         isSubmitted: true,
-        applicationId: result.application_id
+        applicationId: result.job_application_id || result.application_id
       }));
 
       toast({
