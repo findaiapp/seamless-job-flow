@@ -941,6 +941,7 @@ export type Database = {
           position_applied_for: string | null
           preferred_company: string | null
           ref_source: string | null
+          ref_source_label: string | null
           referral_code: string | null
           resume_url: string | null
           role: string | null
@@ -970,6 +971,7 @@ export type Database = {
           position_applied_for?: string | null
           preferred_company?: string | null
           ref_source?: string | null
+          ref_source_label?: string | null
           referral_code?: string | null
           resume_url?: string | null
           role?: string | null
@@ -999,6 +1001,7 @@ export type Database = {
           position_applied_for?: string | null
           preferred_company?: string | null
           ref_source?: string | null
+          ref_source_label?: string | null
           referral_code?: string | null
           resume_url?: string | null
           role?: string | null
@@ -12426,34 +12429,19 @@ export type Database = {
       }
       referral_codes: {
         Row: {
-          clicks: number | null
-          code: string
-          conversions: number | null
-          created_at: string
-          earnings: number | null
-          id: string
-          signups: number | null
-          user_id: string | null
+          Referral_code: string
+          source_label: string
+          user_id: string
         }
         Insert: {
-          clicks?: number | null
-          code: string
-          conversions?: number | null
-          created_at?: string
-          earnings?: number | null
-          id?: string
-          signups?: number | null
-          user_id?: string | null
+          Referral_code?: string
+          source_label: string
+          user_id?: string
         }
         Update: {
-          clicks?: number | null
-          code?: string
-          conversions?: number | null
-          created_at?: string
-          earnings?: number | null
-          id?: string
-          signups?: number | null
-          user_id?: string | null
+          Referral_code?: string
+          source_label?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -12726,6 +12714,21 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           viewed?: boolean | null
+        }
+        Relationships: []
+      }
+      referral_source: {
+        Row: {
+          created_at: string
+          id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
         }
         Relationships: []
       }
