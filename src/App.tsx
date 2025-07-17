@@ -16,6 +16,8 @@ import AlertsPage from "./pages/AlertsPage";
 import SettingsPage from "./pages/SettingsPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ReferralsDashboard from "./pages/ReferralsDashboard";
+import RepostEngine from "./pages/RepostEngine";
+import PostTracker from "./pages/PostTracker";
 import ApplicationFlowRouter from "./components/ApplicationFlowRouter";
 import NotFound from "./pages/NotFound";
 import DebugBanner from "./components/DebugBanner";
@@ -46,6 +48,8 @@ const App = () => (
               <Route path="/thank-you" element={<ThankYouPage />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/referrals-dashboard" element={<ReferralsDashboard />} />
+          <Route path="/repost-engine" element={<RepostEngine />} />
+          <Route path="/post-tracker" element={<PostTracker />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

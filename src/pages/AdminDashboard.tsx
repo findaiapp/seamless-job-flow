@@ -13,7 +13,8 @@ import {
   ExternalLink, 
   Filter,
   Download,
-  RefreshCw
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
@@ -248,6 +249,18 @@ export default function AdminDashboard() {
             <p className="text-muted-foreground">Monitor and analyze application performance</p>
           </div>
           <div className="flex gap-3">
+            <Link to="/repost-engine">
+              <Button variant="outline" size="sm">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Repost Engine
+              </Button>
+            </Link>
+            <Link to="/post-tracker">
+              <Button variant="outline" size="sm">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Post Tracker
+              </Button>
+            </Link>
             <Link to="/referrals-dashboard">
               <Button variant="outline" size="sm">
                 <Users className="h-4 w-4 mr-2" />

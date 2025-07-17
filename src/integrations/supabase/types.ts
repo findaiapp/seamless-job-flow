@@ -104,6 +104,80 @@ export type Database = {
         }
         Relationships: []
       }
+      craigslist_posts: {
+        Row: {
+          city: string
+          clicks: number
+          id: string
+          job_type: string
+          posted_at: string
+          repost_at: string | null
+          status: Database["public"]["Enums"]["post_status"]
+          variant_id: string
+          views: number
+        }
+        Insert: {
+          city: string
+          clicks?: number
+          id?: string
+          job_type: string
+          posted_at?: string
+          repost_at?: string | null
+          status?: Database["public"]["Enums"]["post_status"]
+          variant_id: string
+          views?: number
+        }
+        Update: {
+          city?: string
+          clicks?: number
+          id?: string
+          job_type?: string
+          posted_at?: string
+          repost_at?: string | null
+          status?: Database["public"]["Enums"]["post_status"]
+          variant_id?: string
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "craigslist_posts_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "post_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_variants: {
+        Row: {
+          city: string
+          created_at: string
+          created_by: string | null
+          id: string
+          job_type: string
+          variant_body: string
+          variant_title: string
+        }
+        Insert: {
+          city: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_type: string
+          variant_body: string
+          variant_title: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_type?: string
+          variant_body?: string
+          variant_title?: string
+        }
+        Relationships: []
+      }
       referral_attributions: {
         Row: {
           application_id: string | null
@@ -177,7 +251,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      post_status: "posted" | "scheduled" | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -304,6 +378,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      post_status: ["posted", "scheduled", "expired"],
+    },
   },
 } as const

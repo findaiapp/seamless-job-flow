@@ -17,6 +17,8 @@ import { useSmartMatchScore } from "@/hooks/useSmartMatchScore";
 import { useSmartJobAlerts } from "@/hooks/useSmartJobAlerts";
 import { useCraigslistTracker } from "@/hooks/useCraigslistTracker";
 
+import { usePostTracker } from '@/hooks/usePostTracker';
+
 interface Job {
   id: string;
   title: string;
@@ -35,6 +37,7 @@ const ApplyPage = () => {
   const { getReferralCode, trackAttribution } = useReferralTracking();
   const { saveJob, applyToJob, loading: actionLoading } = useJobActions();
   const { trackApplication, isCraigslistUser, isTracking } = useCraigslistTracker();
+  usePostTracker(); // Auto-tracks post clicks from Craigslist
   
   const [job, setJob] = useState<Job | null>(null);
   const [user, setUser] = useState<any>(null);
