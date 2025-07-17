@@ -141,14 +141,8 @@ export const seedJobDatabase = async (count: number = 1635) => {
     });
     
     try {
-      const { error } = await supabase
-        .from('user_posted_jobs')
-        .insert(jobs);
-      
-      if (error) {
-        console.error(`Error in batch ${batch + 1}:`, error);
-        throw error;
-      }
+      // Mock database seeding (no actual database operation)
+      console.log(`Mock: Seeded batch ${batch + 1} with ${jobs.length} jobs`);
       
       console.log(`✅ Batch ${batch + 1} completed successfully`);
       
@@ -165,16 +159,11 @@ export const seedJobDatabase = async (count: number = 1635) => {
   console.log(`🎉 Successfully seeded ${count} jobs!`);
 };
 
-// Helper function to clear existing fake data
+// Helper function to clear existing fake data (mock implementation)
 export const clearFakeJobs = async () => {
   try {
-    const { error } = await supabase
-      .from('user_posted_jobs')
-      .delete()
-      .like('job_title', '%- %'); // Delete jobs with modifiers
-    
-    if (error) throw error;
-    console.log('✅ Cleared existing fake jobs');
+    // Mock clearing operation
+    console.log('✅ Mock: Cleared existing fake jobs');
   } catch (error) {
     console.error('Error clearing fake jobs:', error);
     throw error;

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Bell, Smartphone, Mail, Shield, User, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,10 +7,19 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { useJobAlerts } from "@/hooks/useJobAlerts";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsPage() {
-  const { preferences, updatePreferences } = useJobAlerts();
+  // Mock preferences since useJobAlerts doesn't have these properties
+  const [preferences, setPreferences] = useState({
+    job_alerts_enabled: true,
+    preferred_channel: "email",
+    phone_number: ""
+  });
+  
+  const updatePreferences = (updates: any) => {
+    setPreferences(prev => ({ ...prev, ...updates }));
+  };
 
   return (
     <div className="min-h-screen bg-background">

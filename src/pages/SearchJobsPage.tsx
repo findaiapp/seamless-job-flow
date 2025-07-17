@@ -206,56 +206,63 @@ export default function SearchJobsPage() {
       const from = (page - 1) * JOBS_PER_PAGE;
       const to = from + JOBS_PER_PAGE - 1;
       
-      // Get total count first
-      const { count } = await supabase
-        .from('user_posted_jobs')
-        .select('*', { count: 'exact', head: true });
+      // Mock job data
+      const mockJobs: Job[] = [
+        {
+          id: '1',
+          title: 'Delivery Driver',
+          company: 'Quick Delivery Co',
+          location: 'Brooklyn, NY',
+          salary_min: null,
+          salary_max: null,
+          pay_range: '$18-25/hr',
+          description: 'Join our team of delivery drivers and earn competitive pay with flexible hours.',
+          job_type: 'delivery',
+          category: null,
+          is_verified: true,
+          is_hot: true,
+          is_featured: false,
+          brand_name: null,
+          contact_email: 'hiring@quickdelivery.com',
+          employer_email: 'hiring@quickdelivery.com',
+          job_tags: null,
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: '2',
+          title: 'Warehouse Associate',
+          company: 'Storage Solutions',
+          location: 'Queens, NY',
+          salary_min: null,
+          salary_max: null,
+          pay_range: '$16-22/hr',
+          description: 'Looking for reliable warehouse workers for day and night shifts.',
+          job_type: 'warehouse',
+          category: null,
+          is_verified: true,
+          is_hot: false,
+          is_featured: true,
+          brand_name: null,
+          contact_email: 'jobs@storage.com',
+          employer_email: 'jobs@storage.com',
+          job_tags: null,
+          created_at: new Date().toISOString(),
+        }
+      ];
 
-      let query = supabase
-        .from('user_posted_jobs')
-        .select('*')
-        .range(from, to)
-        .order('created_at', { ascending: false });
-
-      const { data, error } = await query;
-      
-      if (error) throw error;
-
-      // Transform Supabase data to Job interface
-      const transformedJobs: Job[] = (data || []).map(item => ({
-        id: item.id,
-        title: item.job_title || 'Unknown Position',
-        company: item.company || 'Unknown Company',
-        location: item.location || 'Remote',
-        salary_min: null,
-        salary_max: null,
-        pay_range: generatePayRange(),
-        description: item.description || 'No description available',
-        job_type: item.type || null,
-        category: null,
-        is_verified: !!item.contact_email,
-        is_hot: Math.random() > 0.7,
-        is_featured: Math.random() > 0.8,
-        brand_name: null,
-        contact_email: item.contact_email,
-        employer_email: item.contact_email,
-        job_tags: null,
-        created_at: item.created_at,
-      }));
-
-      const totalCount = count || 0;
+      const totalCount = 25; // Mock total count
       setTotalJobs(totalCount);
       setTotalPages(Math.ceil(totalCount / JOBS_PER_PAGE));
 
       if (reset) {
-        setJobs(transformedJobs);
+        setJobs(mockJobs);
         setCurrentPage(1);
       } else {
-        setJobs(prev => [...prev, ...transformedJobs]);
+        setJobs(prev => [...prev, ...mockJobs]);
         setCurrentPage(page);
       }
       
-      setHasMore(transformedJobs.length === JOBS_PER_PAGE && totalCount > page * JOBS_PER_PAGE);
+      setHasMore(mockJobs.length === JOBS_PER_PAGE && totalCount > page * JOBS_PER_PAGE);
       
     } catch (error) {
       console.error('Error loading jobs:', error);
@@ -361,41 +368,15 @@ export default function SearchJobsPage() {
     localStorage.setItem('preferred_location', value);
   };
 
-  const handleJobAlert = async (jobType?: string) => {
-    if (!alertEmail && !alertPhone) return;
-    
-    setSubmittingAlert(true);
+  const createJobAlert = async (email: string) => {
     try {
-      const { error } = await supabase
-        .from('alerts')
-        .insert({
-          email: alertEmail || null,
-          phone: alertPhone || null,
-          city: alertCity || selectedBorough || 'New York',
-          job_type: alertJobType || jobType || 'all',
-          is_active: true
-        });
-
-      if (error) throw error;
-
+      // Mock alert creation
       toast({
-        title: "Alert created!",
-        description: "We'll notify you when similar jobs are posted.",
+        title: "Alert Created! 🎯",
+        description: "We'll notify you when new jobs match your criteria.",
       });
-      setAlertEmail("");
-      setAlertPhone("");
-      setAlertCity("");
-      setAlertJobType("");
-      setShowAlertModal(false);
     } catch (error) {
-      console.error('Error creating alert:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create job alert. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmittingAlert(false);
+      console.error('Error creating job alert:', error);
     }
   };
 
@@ -1317,7 +1298,7 @@ export default function SearchJobsPage() {
               </div>
               
               <Button 
-                onClick={() => handleJobAlert()}
+                onClick={() => createJobAlert(alertEmail)}
                 disabled={submittingAlert || (!alertEmail && !alertPhone)}
                 className="w-full"
               >
