@@ -41,24 +41,15 @@ export const useJobPreloader = (jobId: string) => {
         if (fetchError) {
           console.error('Error fetching job:', fetchError);
           setError('Failed to load job details');
-          toast({
-            title: "Error Loading Job",
-            description: "Could not fetch job details. Please try again.",
-            variant: "destructive",
-          });
           return;
         }
 
         if (!data) {
           setError('Job not found');
-          toast({
-            title: "Job Not Found",
-            description: "The requested job could not be found.",
-            variant: "destructive",
-          });
           return;
         }
 
+        // Job found successfully
         setJob(data);
         console.log('✅ Job loaded successfully:', data);
       } catch (err) {

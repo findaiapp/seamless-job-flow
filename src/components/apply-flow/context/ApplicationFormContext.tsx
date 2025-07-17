@@ -221,11 +221,12 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
         body: {
           full_name: formData.fullName,
           phone_number: formData.phoneNumber,
-          email: formData.email || formData.phoneNumber, // Use phone as fallback for email
+          email: formData.email || formData.phoneNumber,
           location: formData.location,
           skills: Array.isArray(formData.skills) ? formData.skills.join(', ') : formData.experience,
           availability: formData.availability,
           resume_url: formData.resumeUrl,
+          ref_code: formData.referralCode,
           job_id: formData.jobId,
           source: 'application_flow'
         }
