@@ -10,6 +10,7 @@ interface ApplicationFormData {
   // Step 1: Personal Info
   fullName: string;
   phone: string;
+  email: string;
   location: string;
 
   // Step 2: Skills & Availability
@@ -46,6 +47,7 @@ const initialFormData: ApplicationFormData = {
   jobCompany: '',
   fullName: '',
   phone: '',
+  email: '',
   location: '',
   skills: '',
   availability: '',
@@ -80,6 +82,7 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
         setFormData({
           fullName: app.full_name || '',
           phone: app.phone || '',
+          email: '',
           location: app.location || '',
           skills: app.skills || '',
           availability: app.availability || '',
@@ -120,42 +123,30 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
   const saveToSupabase = async (): Promise<{ success: boolean; id?: string }> => {
     setIsLoading(true);
     try {
-      const applicationData = {
-        full_name: formData.fullName,
-        phone: formData.phone,
-        location: formData.location,
-        skills: formData.skills,
-        availability: formData.availability,
-        resume_url: formData.resumeUrl,
-        referral_code: formData.referralCode,
-        source: formData.source,
-        updated_at: new Date().toISOString(),
-      };
+      // Use edge function for saving application steps
+      const response = await supabase.functions.invoke('save-application-step', {
+        body: {
+          application_id: formData.applicationId,
+          step_number: formData.currentStep,
+          full_name: formData.fullName,
+          phone_number: formData.phone,
+          email: formData.email,
+          location: formData.location,
+          skills: formData.skills,
+          availability: formData.availability,
+          resume_url: formData.resumeUrl,
+          ref_code: formData.referralCode,
+          job_id: formData.jobId,
+        }
+      });
 
-      if (formData.applicationId) {
-        // Update existing application
-        const { data, error } = await supabase
-          .from('applications')
-          .update(applicationData)
-          .eq('id', formData.applicationId)
-          .select()
-          .single();
+      if (response.error) throw response.error;
+      
+      const result = response.data;
+      if (!result.success) throw new Error(result.error);
 
-        if (error) throw error;
-        return { success: true, id: data.id };
-      } else {
-        // Create new application
-        const { data, error } = await supabase
-          .from('applications')
-          .insert([applicationData])
-          .select()
-          .single();
-
-        if (error) throw error;
-        
-        setFormData(prev => ({ ...prev, applicationId: data.id }));
-        return { success: true, id: data.id };
-      }
+      setFormData(prev => ({ ...prev, applicationId: result.application_id }));
+      return { success: true, id: result.application_id };
     } catch (error) {
       console.error('Error saving to Supabase:', error);
       return { success: false };
@@ -167,21 +158,39 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
   const submitApplication = async (): Promise<{ success: boolean }> => {
     setIsLoading(true);
     try {
-      // First save all current data
-      const saveResult = await saveToSupabase();
-      if (!saveResult.success) return { success: false };
+      // Use edge function for final submission
+      const response = await supabase.functions.invoke('submit-application', {
+        body: {
+          full_name: formData.fullName,
+          phone_number: formData.phone,
+          email: formData.email,
+          location: formData.location,
+          skills: formData.skills,
+          availability: formData.availability,
+          resume_url: formData.resumeUrl,
+          ref_code: formData.referralCode,
+          job_id: formData.jobId,
+          source: formData.source || 'direct'
+        }
+      });
 
-      // Mark as submitted
-      const { error } = await supabase
-        .from('applications')
-        .update({
-          submitted_at: new Date().toISOString(),
-        })
-        .eq('id', formData.applicationId || saveResult.id);
+      if (response.error) throw response.error;
+      
+      const result = response.data;
+      if (!result.success) throw new Error(result.error);
 
-      if (error) throw error;
+      // Log referral if exists
+      if (formData.referralCode && formData.jobId) {
+        await supabase.functions.invoke('log-referral', {
+          body: {
+            referral_code: formData.referralCode,
+            job_id: formData.jobId,
+            application_id: result.application_id
+          }
+        });
+      }
 
-      setFormData(prev => ({ ...prev, isSubmitted: true }));
+      setFormData(prev => ({ ...prev, isSubmitted: true, applicationId: result.application_id }));
       return { success: true };
     } catch (error) {
       console.error('Error submitting application:', error);
@@ -196,7 +205,7 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
     if (step === 2) return !!formData.fullName && !!formData.phone && !!formData.location;
     if (step === 3) return !!formData.skills && !!formData.availability;
     if (step === 4) return true; // Resume step is optional, anyone who completed step 2 can access
-    if (step === 5) return !!formData.source;
+    if (step === 5) return !!formData.fullName && !!formData.phone; // Review requires basic info
     return false;
   };
 

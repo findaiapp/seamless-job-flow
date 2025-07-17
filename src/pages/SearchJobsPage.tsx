@@ -80,7 +80,19 @@ export default function SearchJobsPage() {
   const { getReferralCode } = useReferralTracking();
   const { location, isDetecting, detectLocation, saveUserLocation, getPopularCategoryForLocation } = useLocationDetection();
   // Use the new Smart Pagination Feed instead of old pagination
-  const handleJobClick = (jobId: string) => {
+  const handleJobClick = async (jobId: string) => {
+    // Track job click
+    try {
+      await supabase.functions.invoke('track-job-click', {
+        body: {
+          job_id: jobId,
+          referrer: 'search-page'
+        }
+      });
+    } catch (error) {
+      console.error('Failed to track job click:', error);
+    }
+
     navigate(`/apply/${jobId}?ref=search`);
     window.scrollTo(0, 0);
   };
@@ -380,7 +392,19 @@ export default function SearchJobsPage() {
     }
   };
 
-  const handleJobCardClick = (jobId: string) => {
+  const handleJobCardClick = async (jobId: string) => {
+    // Track job click
+    try {
+      await supabase.functions.invoke('track-job-click', {
+        body: {
+          job_id: jobId,
+          referrer: 'search-page'
+        }
+      });
+    } catch (error) {
+      console.error('Failed to track job click:', error);
+    }
+
     navigate(`/apply/${jobId}?ref=search`);
     window.scrollTo(0, 0);
   };
