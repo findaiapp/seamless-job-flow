@@ -154,6 +154,51 @@ export type Database = {
           },
         ]
       }
+      jobs: {
+        Row: {
+          benefits: string | null
+          company: string
+          created_at: string
+          description: string
+          id: string
+          is_verified: boolean | null
+          job_type: string | null
+          location: string
+          pay_range: string | null
+          posted_at: string
+          requirements: string | null
+          title: string
+        }
+        Insert: {
+          benefits?: string | null
+          company: string
+          created_at?: string
+          description: string
+          id?: string
+          is_verified?: boolean | null
+          job_type?: string | null
+          location: string
+          pay_range?: string | null
+          posted_at?: string
+          requirements?: string | null
+          title: string
+        }
+        Update: {
+          benefits?: string | null
+          company?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_verified?: boolean | null
+          job_type?: string | null
+          location?: string
+          pay_range?: string | null
+          posted_at?: string
+          requirements?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       post_variants: {
         Row: {
           city: string
@@ -245,6 +290,42 @@ export type Database = {
           ip_address?: string | null
           job_id?: string
           referral_code?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      search_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          filter_applied: string | null
+          id: string
+          ip_address: string | null
+          job_id: string | null
+          job_type: string | null
+          location: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          filter_applied?: string | null
+          id?: string
+          ip_address?: string | null
+          job_id?: string | null
+          job_type?: string | null
+          location?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          filter_applied?: string | null
+          id?: string
+          ip_address?: string | null
+          job_id?: string | null
+          job_type?: string | null
+          location?: string | null
           user_agent?: string | null
         }
         Relationships: []
