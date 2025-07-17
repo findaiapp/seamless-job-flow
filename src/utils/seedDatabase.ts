@@ -88,7 +88,7 @@ const DESCRIPTIONS = [
 ];
 
 export const seedJobDatabase = async (count: number = 1635) => {
-  console.log(`Starting to seed ${count} jobs...`);
+  console.log(`Starting to seed ${count} applications...`);
   
   const batchSize = 100;
   const batches = Math.ceil(count / batchSize);
@@ -98,51 +98,30 @@ export const seedJobDatabase = async (count: number = 1635) => {
     const endIndex = Math.min(startIndex + batchSize, count);
     const currentBatchSize = endIndex - startIndex;
     
-    console.log(`Seeding batch ${batch + 1}/${batches} (${currentBatchSize} jobs)`);
+    console.log(`Seeding batch ${batch + 1}/${batches} (${currentBatchSize} applications)`);
     
-    const jobs = Array.from({ length: currentBatchSize }, (_, i) => {
+    const applications = Array.from({ length: currentBatchSize }, (_, i) => {
       const globalIndex = startIndex + i;
       const titleIndex = globalIndex % JOB_TITLES.length;
       const companyIndex = globalIndex % COMPANIES.length;
       const locationIndex = globalIndex % BOROUGHS.length;
-      const payIndex = globalIndex % PAY_RANGES.length;
-      const descIndex = globalIndex % DESCRIPTIONS.length;
       
-      const payRange = PAY_RANGES[payIndex];
-      const hourlyMin = payRange.min + Math.floor(Math.random() * 3);
-      const hourlyMax = payRange.max + Math.floor(Math.random() * 5);
-      
-      // Add variety to job titles
-      let jobTitle = JOB_TITLES[titleIndex];
-      if (Math.random() > 0.7) {
-        const modifiers = [
-          "- Full Time",
-          "- Part Time", 
-          "- Weekend Shifts",
-          "- Night Shift",
-          "- Immediate Start",
-          "- No Experience Required",
-          "- Hiring Now",
-          "- $" + hourlyMax + "/hr"
-        ];
-        jobTitle += " " + modifiers[globalIndex % modifiers.length];
-      }
-      
+      // Generate realistic application data for the applications table
       return {
-        job_title: jobTitle,
-        company: COMPANIES[companyIndex],
+        full_name: `Applicant ${globalIndex + 1}`,
+        phone: `(555) ${String(Math.floor(Math.random() * 900) + 100)}-${String(Math.floor(Math.random() * 9000) + 1000)}`,
         location: BOROUGHS[locationIndex],
-        description: DESCRIPTIONS[descIndex],
-        contact_email: `hr@${COMPANIES[companyIndex].toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
-        type: Math.random() > 0.5 ? 'full-time' : 'part-time',
-        // Add some variation to created_at dates (last 30 days)
-        created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+        skills: JOB_TITLES[titleIndex],
+        availability: Math.random() > 0.5 ? 'Full-time' : 'Part-time',
+        referral_code: Math.random() > 0.7 ? `REF${Math.floor(Math.random() * 1000)}` : null,
+        source: Math.random() > 0.5 ? 'craigslist' : 'direct',
+        submitted_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
       };
     });
     
     try {
       // Mock database seeding (no actual database operation)
-      console.log(`Mock: Seeded batch ${batch + 1} with ${jobs.length} jobs`);
+      console.log(`Mock: Seeded batch ${batch + 1} with ${applications.length} applications`);
       
       console.log(`✅ Batch ${batch + 1} completed successfully`);
       
@@ -156,16 +135,16 @@ export const seedJobDatabase = async (count: number = 1635) => {
     }
   }
   
-  console.log(`🎉 Successfully seeded ${count} jobs!`);
+  console.log(`🎉 Successfully seeded ${count} applications!`);
 };
 
 // Helper function to clear existing fake data (mock implementation)
-export const clearFakeJobs = async () => {
+export const clearFakeApplications = async () => {
   try {
     // Mock clearing operation
-    console.log('✅ Mock: Cleared existing fake jobs');
+    console.log('✅ Mock: Cleared existing fake applications');
   } catch (error) {
-    console.error('Error clearing fake jobs:', error);
+    console.error('Error clearing fake applications:', error);
     throw error;
   }
 };
