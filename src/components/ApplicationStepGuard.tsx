@@ -45,7 +45,7 @@ const ApplicationStepGuard: React.FC<ApplicationStepGuardProps> = ({ step, child
       });
 
       // Redirect to the correct step  
-      navigate(`../step-${redirectStep}`);
+      navigate(`step-${redirectStep}`);
       return;
     }
 

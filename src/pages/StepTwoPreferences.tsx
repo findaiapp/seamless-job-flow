@@ -47,11 +47,11 @@ const StepTwoPreferences = () => {
     });
 
     await saveToSupabase();
-    navigate('../step-3');
+    navigate('step-3');
   };
 
   const handleBack = () => {
-    navigate('../step-1');
+    navigate('step-1');
   };
 
   return (

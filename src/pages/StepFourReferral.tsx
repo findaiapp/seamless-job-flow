@@ -46,11 +46,11 @@ const StepFourReferral = () => {
     });
 
     await saveToSupabase();
-    navigate('../step-5');
+    navigate('step-5');
   };
 
   const handleBack = () => {
-    navigate('../step-3');
+    navigate('step-3');
   };
 
   return (

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 import ApplicationStepGuard from './ApplicationStepGuard';
 import StepOnePersonalInfo from '@/pages/StepOnePersonalInfo';
 import StepTwoPreferences from '@/pages/StepTwoPreferences';
@@ -35,28 +36,53 @@ const ApplicationFlowRouter: React.FC = () => {
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching job:', error);
-        toast({
-          title: "Job not found",
-          description: "Redirecting to job search...",
-          variant: "destructive",
-        });
-        navigate('/search-jobs');
+        // Don't navigate away - show custom error instead
+        setJobData(null);
         return;
       }
 
       setJobData(job);
     } catch (error) {
       console.error('Error fetching job:', error);
-      toast({
-        title: "Error loading job",
-        description: "Redirecting to job search...",
-        variant: "destructive",
-      });
-      navigate('/search-jobs');
+      setJobData(null);
     } finally {
       setLoading(false);
     }
   };
+
+  // Show custom error for missing job
+  if (!loading && job_id && !jobData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+        <div className="max-w-md mx-auto text-center">
+          <div className="mb-6">
+            <div className="w-16 h-16 mx-auto mb-4 bg-orange-100 rounded-full flex items-center justify-center">
+              <span className="text-2xl">⚠️</span>
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Job No Longer Available</h2>
+            <p className="text-muted-foreground">
+              This job posting has been removed or filled. Don't worry - there are plenty of other opportunities waiting for you!
+            </p>
+          </div>
+          <div className="space-y-3">
+            <Button 
+              onClick={() => navigate('/search-jobs')} 
+              className="w-full"
+            >
+              Browse All Jobs →
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/')}
+              className="w-full"
+            >
+              Return to Homepage
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -76,7 +102,7 @@ const ApplicationFlowRouter: React.FC = () => {
       
       {/* Step 1: Basic Info */}
       <Route 
-        path="/step-1" 
+        path="step-1" 
         element={
           <ApplicationStepGuard step={1}>
             <StepOnePersonalInfo />
@@ -86,7 +112,7 @@ const ApplicationFlowRouter: React.FC = () => {
       
       {/* Step 2: Skills & Availability */}
       <Route 
-        path="/step-2" 
+        path="step-2" 
         element={
           <ApplicationStepGuard step={2}>
             <StepTwoPreferences />
@@ -96,7 +122,7 @@ const ApplicationFlowRouter: React.FC = () => {
       
       {/* Step 3: Resume & Experience */}
       <Route 
-        path="/step-3" 
+        path="step-3" 
         element={
           <ApplicationStepGuard step={3}>
             <StepThreeResumeUpload />
@@ -106,7 +132,7 @@ const ApplicationFlowRouter: React.FC = () => {
       
       {/* Step 4: Referral Info */}
       <Route 
-        path="/step-4" 
+        path="step-4" 
         element={
           <ApplicationStepGuard step={4}>
             <StepFourReferral />
@@ -116,7 +142,7 @@ const ApplicationFlowRouter: React.FC = () => {
       
       {/* Step 5: Review Application */}
       <Route 
-        path="/step-5" 
+        path="step-5" 
         element={
           <ApplicationStepGuard step={5}>
             <StepFiveReview />
@@ -126,7 +152,7 @@ const ApplicationFlowRouter: React.FC = () => {
       
       {/* Success Page */}
       <Route 
-        path="/success" 
+        path="success" 
         element={<StepSixSuccess />} 
       />
       
