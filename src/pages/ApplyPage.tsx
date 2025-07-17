@@ -327,24 +327,17 @@ const ApplyPage = () => {
         }
       }
 
-      // Prepare application data
+      // Prepare application data aligned with applications table schema
       const applicationPayload = {
-        job_id: job_id,
-        name: formData.fullName,
+        full_name: formData.fullName,
         phone: formData.phone,
-        seeker_id: currentUser?.id || null,
-        created_at: new Date().toISOString(),
-        email: formData.email || currentUser?.email || '',
-        location: formData.location,
-        position_applied_for: formData.positionApplyingFor,
-        why_you: formData.whyYou,
-        skills_description: formData.skillsDescription,
-        availability: formData.availability,
+        location: formData.location || '',
+        skills: formData.skillsDescription || '',
+        availability: formData.availability || '',
         resume_url: resumeUrl,
-        company_name: job?.company || '',
-        job_title: job?.title || '',
-        ref_source: formData.referralSource,
-        referral_code: formData.referralSource,
+        referral_code: formData.referralSource || getReferralCode() || null,
+        source: formData.howHeard || 'direct',
+        submitted_at: new Date().toISOString(),
       };
 
       console.log('📤 Debug: Application payload:', applicationPayload);

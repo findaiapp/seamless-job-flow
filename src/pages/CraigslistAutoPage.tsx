@@ -22,7 +22,7 @@ const CraigslistAutoPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [topPerformers, setTopPerformers] = useState<any[]>([]);
   const [performanceData, setPerformanceData] = useState({
-    messages_received: 0,
+    contacts_received: 0,
     views_estimated: 0,
     clicks: 0
   });
@@ -70,7 +70,7 @@ Ready to join our family? Apply today!`,
       };
       setTodaysPost(mockPost);
       setPerformanceData({
-        messages_received: 12,
+        contacts_received: 12,
         views_estimated: 156,
         clicks: 23
       });
@@ -91,7 +91,7 @@ Ready to join our family? Apply today!`,
           borough: 'Manhattan',
           job_type: 'Babysitter',
           conversion_score: 92,
-          messages_received: 18,
+          contacts_received: 18,
           created_at: '2025-01-15'
         },
         {
@@ -100,7 +100,7 @@ Ready to join our family? Apply today!`,
           borough: 'Queens',
           job_type: 'Nanny',
           conversion_score: 89,
-          messages_received: 15,
+          contacts_received: 15,
           created_at: '2025-01-14'
         }
       ];
@@ -305,19 +305,19 @@ Ready to join our family? Apply today!`,
             <CardContent className="space-y-4">
               {todaysPost ? (
                 <>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium block mb-1">Messages Received</label>
-                      <Input
-                        type="number"
-                        value={performanceData.messages_received}
-                        onChange={(e) => setPerformanceData(prev => ({
-                          ...prev,
-                          messages_received: parseInt(e.target.value) || 0
-                        }))}
-                        placeholder="0"
-                      />
-                    </div>
+                   <div className="space-y-3">
+                     <div>
+                       <label className="text-sm font-medium block mb-1">Contacts Received</label>
+                       <Input
+                         type="number"
+                         value={performanceData.contacts_received}
+                         onChange={(e) => setPerformanceData(prev => ({
+                           ...prev,
+                           contacts_received: parseInt(e.target.value) || 0
+                         }))}
+                         placeholder="0"
+                       />
+                     </div>
                     
                     <div>
                       <label className="text-sm font-medium block mb-1">Estimated Views</label>
@@ -382,12 +382,12 @@ Ready to join our family? Apply today!`,
                         {post.borough} • {post.job_type} • {new Date(post.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm font-medium">Score: {Math.round(post.conversion_score || 0)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {post.messages_received || 0} messages
-                      </div>
-                    </div>
+                     <div className="text-right">
+                       <div className="text-sm font-medium">Score: {Math.round(post.conversion_score || 0)}</div>
+                       <div className="text-xs text-muted-foreground">
+                         {post.contacts_received || 0} contacts
+                       </div>
+                     </div>
                   </div>
                 ))}
               </div>
