@@ -22,12 +22,14 @@ export type Database = {
           id: string
           location: string | null
           phone: string | null
+          ref_code: string | null
           referral_code: string | null
           resume_url: string | null
           skills: string | null
           source: string | null
           submitted_at: string
           updated_at: string
+          utm_ref: string | null
         }
         Insert: {
           availability?: string | null
@@ -36,12 +38,14 @@ export type Database = {
           id?: string
           location?: string | null
           phone?: string | null
+          ref_code?: string | null
           referral_code?: string | null
           resume_url?: string | null
           skills?: string | null
           source?: string | null
           submitted_at?: string
           updated_at?: string
+          utm_ref?: string | null
         }
         Update: {
           availability?: string | null
@@ -50,12 +54,14 @@ export type Database = {
           id?: string
           location?: string | null
           phone?: string | null
+          ref_code?: string | null
           referral_code?: string | null
           resume_url?: string | null
           skills?: string | null
           source?: string | null
           submitted_at?: string
           updated_at?: string
+          utm_ref?: string | null
         }
         Relationships: []
       }

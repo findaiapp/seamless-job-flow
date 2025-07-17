@@ -118,7 +118,7 @@ const ApplyPage = () => {
     return Math.floor(Math.random() * 10) + 1;
   };
 
-  // Smart prefill logic for Craigslist
+  // Smart prefill logic for Craigslist with URL parameters
   useEffect(() => {
     const prefillData = () => {
       // Get saved data from localStorage
@@ -132,25 +132,45 @@ const ApplyPage = () => {
         }
       }
 
-      // Enhanced smart prefill from URL params for Craigslist
-      const ref = searchParams.get('ref');
+      // Auto-fill from URL parameters
+      const jobTypeParam = searchParams.get('job_type');
+      const locationParam = searchParams.get('location');
+      const nameParam = searchParams.get('name');
+      const phoneParam = searchParams.get('phone');
+      const emailParam = searchParams.get('email');
+      const refCode = searchParams.get('ref');
+      
+      // Enhanced Craigslist-specific prefilling
       const utmSource = searchParams.get('utm_source');
       const utmCampaign = searchParams.get('utm_campaign');
-      const jobParam = searchParams.get('job');
       const cityParam = searchParams.get('city');
       
-      // Craigslist-specific prefilling
+      // Create UTM reference for analytics
+      let utmRef = '';
       if (utmSource === 'craigslist' || utmCampaign === 'craigslist') {
-        setFormData(prev => ({ 
-          ...prev, 
-          howHeard: 'Craigslist',
-          referralSource: 'craigslist',
-          ...(jobParam && { experience: `${jobParam.replace('-', ' ')} experience` }),
-          ...(cityParam && { location: cityParam.charAt(0).toUpperCase() + cityParam.slice(1) })
-        }));
-      } else if (ref) {
-        localStorage.setItem('referral_code', ref);
-        setFormData(prev => ({ ...prev, referralSource: ref, howHeard: 'Referral Link' }));
+        utmRef = `craigslist::${jobTypeParam || 'unknown'}::${locationParam || cityParam || 'unknown'}`;
+      }
+      
+      setFormData(prev => ({ 
+        ...prev, 
+        // Auto-fill from URL parameters
+        ...(jobTypeParam && { positionApplyingFor: jobTypeParam.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) }),
+        ...(locationParam && { location: locationParam.charAt(0).toUpperCase() + locationParam.slice(1) }),
+        ...(nameParam && { fullName: decodeURIComponent(nameParam) }),
+        ...(phoneParam && { phone: decodeURIComponent(phoneParam) }),
+        ...(emailParam && { email: decodeURIComponent(emailParam) }),
+        // Craigslist-specific fields
+        howHeard: utmSource === 'craigslist' || utmCampaign === 'craigslist' ? 'Craigslist' : prev.howHeard,
+        referralSource: refCode || (utmSource === 'craigslist' ? 'craigslist' : prev.referralSource),
+        // Experience based on job type
+        ...(jobTypeParam && { experience: `Previous ${jobTypeParam.replace('-', ' ')} experience` }),
+        // Location based on city param
+        ...(cityParam && !locationParam && { location: cityParam.charAt(0).toUpperCase() + cityParam.slice(1) })
+      }));
+
+      // Store UTM reference for submission
+      if (utmRef) {
+        sessionStorage.setItem('utm_ref', utmRef);
       }
     };
 
@@ -332,7 +352,10 @@ const ApplyPage = () => {
         }
       }
 
-      // Prepare application data aligned with applications table schema
+      // Prepare application data with enhanced tracking
+      const utmRef = sessionStorage.getItem('utm_ref') || '';
+      const refCode = searchParams.get('ref') || formData.referralSource || getReferralCode();
+      
       const applicationPayload = {
         full_name: formData.fullName,
         phone: formData.phone,
@@ -340,8 +363,10 @@ const ApplyPage = () => {
         skills: formData.skillsDescription || '',
         availability: formData.availability || '',
         resume_url: resumeUrl,
-        referral_code: formData.referralSource || getReferralCode() || null,
-        source: formData.howHeard || 'direct',
+        referral_code: refCode || null,
+        ref_code: refCode || null, // New field for referral tracking
+        utm_ref: utmRef || null, // UTM analytics reference
+        source: utmRef.includes('craigslist') ? 'craigslist' : (formData.howHeard || 'direct'),
         submitted_at: new Date().toISOString(),
       };
 
