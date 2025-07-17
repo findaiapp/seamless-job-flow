@@ -16,6 +16,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Link } from 'react-router-dom';
 
 interface CraigslistApplication {
   id: string;
@@ -243,10 +244,16 @@ export default function AdminDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Craigslist Tracker Dashboard</h1>
-            <p className="text-muted-foreground">Monitor and analyze Craigslist application performance</p>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground">Monitor and analyze application performance</p>
           </div>
           <div className="flex gap-3">
+            <Link to="/referrals-dashboard">
+              <Button variant="outline" size="sm">
+                <Users className="h-4 w-4 mr-2" />
+                Referrals
+              </Button>
+            </Link>
             <Button onClick={loadDashboardData} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh

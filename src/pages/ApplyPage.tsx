@@ -32,7 +32,7 @@ const ApplyPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { getReferralCode } = useReferralTracking();
+  const { getReferralCode, trackAttribution } = useReferralTracking();
   const { saveJob, applyToJob, loading: actionLoading } = useJobActions();
   const { trackApplication, isCraigslistUser, isTracking } = useCraigslistTracker();
   
@@ -362,6 +362,11 @@ const ApplyPage = () => {
       // Track Craigslist application if applicable
       if (isCraigslistUser && job_id) {
         await trackApplication(job_id);
+      }
+
+      // Track referral attribution if referral data exists
+      if (result.id) {
+        await trackAttribution(result.id);
       }
       
       // Show success state

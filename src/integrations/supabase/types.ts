@@ -104,6 +104,71 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_attributions: {
+        Row: {
+          application_id: string | null
+          city: string | null
+          id: string
+          job_id: string
+          referral_code: string
+          submitted_at: string
+        }
+        Insert: {
+          application_id?: string | null
+          city?: string | null
+          id?: string
+          job_id: string
+          referral_code: string
+          submitted_at?: string
+        }
+        Update: {
+          application_id?: string | null
+          city?: string | null
+          id?: string
+          job_id?: string
+          referral_code?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_attributions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_clicks: {
+        Row: {
+          city: string | null
+          clicked_at: string
+          id: string
+          ip_address: string | null
+          job_id: string
+          referral_code: string
+          user_agent: string | null
+        }
+        Insert: {
+          city?: string | null
+          clicked_at?: string
+          id?: string
+          ip_address?: string | null
+          job_id: string
+          referral_code: string
+          user_agent?: string | null
+        }
+        Update: {
+          city?: string | null
+          clicked_at?: string
+          id?: string
+          ip_address?: string | null
+          job_id?: string
+          referral_code?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
