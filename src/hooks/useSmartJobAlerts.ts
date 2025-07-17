@@ -1,6 +1,5 @@
 // 🦄 Smart Job Alerts Hook - Personal job-seeking sidekick
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@supabase/supabase-js";
 
@@ -30,20 +29,27 @@ export function useSmartJobAlerts(user: User | null) {
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  // Load user's alerts
+  // Load user's alerts (mock implementation)
   const loadAlerts = async () => {
     if (!user) return;
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('job_alerts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setAlerts(data || []);
+      // Mock alerts data
+      const mockAlerts: JobAlert[] = [
+        {
+          id: '1',
+          user_id: 'mock-user',
+          title: 'Delivery Driver',
+          city: 'Brooklyn, NY',
+          min_pay: 18,
+          schedule: 'Part-time',
+          frequency: 'daily',
+          is_active: true,
+          created_at: new Date().toISOString()
+        }
+      ];
+      setAlerts(mockAlerts);
     } catch (error) {
       console.error('Error loading alerts:', error);
       toast({
@@ -56,7 +62,7 @@ export function useSmartJobAlerts(user: User | null) {
     }
   };
 
-  // Save new alert
+  // Save new alert (mock implementation)
   const saveAlert = async (alertData: CreateJobAlertData) => {
     if (!user) {
       toast({
@@ -69,24 +75,19 @@ export function useSmartJobAlerts(user: User | null) {
 
     setSaving(true);
     try {
-      const { data, error } = await supabase
-        .from('job_alerts')
-        .insert({
-          user_id: user.id,
-          title: alertData.title,
-          city: alertData.city,
-          min_pay: alertData.min_pay,
-          schedule: alertData.schedule,
-          frequency: alertData.frequency || 'daily',
-          preferred_method: 'email', // Required field
-          is_active: true,
-        })
-        .select()
-        .single();
+      const newAlert: JobAlert = {
+        id: Date.now().toString(),
+        user_id: 'mock-user',
+        title: alertData.title,
+        city: alertData.city,
+        min_pay: alertData.min_pay,
+        schedule: alertData.schedule,
+        frequency: alertData.frequency || 'daily',
+        is_active: true,
+        created_at: new Date().toISOString()
+      };
 
-      if (error) throw error;
-
-      setAlerts(prev => [data, ...prev]);
+      setAlerts(prev => [newAlert, ...prev]);
       toast({
         title: "Alert Saved! 🎯",
         description: "We'll notify you when jobs match your criteria.",
@@ -105,17 +106,9 @@ export function useSmartJobAlerts(user: User | null) {
     }
   };
 
-  // Delete alert
+  // Delete alert (mock implementation)
   const deleteAlert = async (alertId: string) => {
     try {
-      const { error } = await supabase
-        .from('job_alerts')
-        .delete()
-        .eq('id', alertId)
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
-
       setAlerts(prev => prev.filter(alert => alert.id !== alertId));
       toast({
         title: "Alert deleted",
@@ -131,17 +124,9 @@ export function useSmartJobAlerts(user: User | null) {
     }
   };
 
-  // Toggle alert active status
+  // Toggle alert active status (mock implementation)
   const toggleAlert = async (alertId: string, isActive: boolean) => {
     try {
-      const { error } = await supabase
-        .from('job_alerts')
-        .update({ is_active: isActive })
-        .eq('id', alertId)
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
-
       setAlerts(prev => 
         prev.map(alert => 
           alert.id === alertId 

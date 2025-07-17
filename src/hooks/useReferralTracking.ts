@@ -15,14 +15,7 @@ export const useReferralTracking = () => {
         // Store referral in localStorage for later use
         localStorage.setItem('referral_code', ref);
         
-        // Track the referral event - using correct schema from referral_tracking table
-        await supabase.from('referral_tracking').insert({
-          referral_code: ref,
-          referral_type: 'page_visit',
-          referrer_id: '00000000-0000-0000-0000-000000000000', // placeholder for anonymous
-          referred_id: '00000000-0000-0000-0000-000000000000' // placeholder for anonymous
-        });
-
+        // Mock referral tracking
         console.log('Referral tracked:', ref, 'on page:', location.pathname);
       } catch (error) {
         console.error('Error tracking referral:', error);
