@@ -372,38 +372,91 @@ export type Database = {
       sms_blast_logs: {
         Row: {
           city: string | null
+          click_id: string | null
           click_tracking_url: string | null
           id: string
           job_type: string | null
           message: string
           phone_number: string
+          redirect_url: string | null
           sent_at: string
           status: string
+          utm_campaign: string | null
           utm_source: string | null
         }
         Insert: {
           city?: string | null
+          click_id?: string | null
           click_tracking_url?: string | null
           id?: string
           job_type?: string | null
           message: string
           phone_number: string
+          redirect_url?: string | null
           sent_at?: string
           status?: string
+          utm_campaign?: string | null
           utm_source?: string | null
         }
         Update: {
           city?: string | null
+          click_id?: string | null
           click_tracking_url?: string | null
           id?: string
           job_type?: string | null
           message?: string
           phone_number?: string
+          redirect_url?: string | null
           sent_at?: string
           status?: string
+          utm_campaign?: string | null
           utm_source?: string | null
         }
         Relationships: []
+      }
+      sms_clicks: {
+        Row: {
+          clicked_at: string
+          id: string
+          ip_address: string | null
+          message_id: string | null
+          phone_number: string
+          redirect_url: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          clicked_at?: string
+          id?: string
+          ip_address?: string | null
+          message_id?: string | null
+          phone_number: string
+          redirect_url: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          clicked_at?: string
+          id?: string
+          ip_address?: string | null
+          message_id?: string | null
+          phone_number?: string
+          redirect_url?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_clicks_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "sms_blast_logs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

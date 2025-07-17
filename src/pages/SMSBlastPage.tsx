@@ -29,6 +29,20 @@ interface BlastLog {
   job_type: string;
   sent_at: string;
   status: string;
+  utm_campaign: string;
+  redirect_url: string;
+  click_id: string;
+}
+
+interface ClickAnalytics {
+  blast_id: string;
+  utm_campaign: string;
+  total_sent: number;
+  total_clicks: number;
+  click_rate: number;
+  city: string;
+  job_type: string;
+  sent_at: string;
 }
 
 const SMSBlastPage = () => {
@@ -44,15 +58,19 @@ const SMSBlastPage = () => {
   const [message, setMessage] = useState("");
   const [tone, setTone] = useState("friendly");
   const [jobDetails, setJobDetails] = useState("");
+  const [campaignName, setCampaignName] = useState("");
+  const [redirectUrl, setRedirectUrl] = useState("https://seamless-job-flow.lovable.app/search-jobs");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [blastLogs, setBlastLogs] = useState<BlastLog[]>([]);
+  const [clickAnalytics, setClickAnalytics] = useState<ClickAnalytics[]>([]);
   const { toast } = useToast();
 
   // Load initial data
   useEffect(() => {
     loadFilterOptions();
     loadBlastLogs();
+    loadClickAnalytics();
   }, []);
 
   // Update filtered users when filters change
@@ -136,6 +154,81 @@ const SMSBlastPage = () => {
     }
   };
 
+  const loadClickAnalytics = async () => {
+    try {
+      // Get blast logs with click counts
+      const { data: analyticsData, error } = await supabase
+        .from('sms_blast_logs')
+        .select(`
+          id,
+          utm_campaign,
+          city,
+          job_type,
+          sent_at,
+          sms_clicks!inner (
+            id
+          )
+        `)
+        .order('sent_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      // Process the data to create analytics
+      const analytics: ClickAnalytics[] = [];
+      const blastMap = new Map();
+
+      // Count total sent per campaign
+      const { data: sentData } = await supabase
+        .from('sms_blast_logs')
+        .select('utm_campaign, id')
+        .not('utm_campaign', 'is', null);
+
+      // Count clicks per campaign
+      const { data: clickData } = await supabase
+        .from('sms_clicks')
+        .select('utm_campaign, id');
+
+      if (sentData && clickData) {
+        const sentCounts = sentData.reduce((acc, item) => {
+          acc[item.utm_campaign] = (acc[item.utm_campaign] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        const clickCounts = clickData.reduce((acc, item) => {
+          acc[item.utm_campaign] = (acc[item.utm_campaign] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        // Create analytics for each campaign
+        Object.keys(sentCounts).forEach(campaign => {
+          const totalSent = sentCounts[campaign] || 0;
+          const totalClicks = clickCounts[campaign] || 0;
+          const clickRate = totalSent > 0 ? (totalClicks / totalSent) * 100 : 0;
+
+          // Find sample blast for additional info
+          const sampleBlast = sentData.find(item => item.utm_campaign === campaign);
+          if (sampleBlast) {
+            analytics.push({
+              blast_id: sampleBlast.id,
+              utm_campaign: campaign,
+              total_sent: totalSent,
+              total_clicks: totalClicks,
+              click_rate: clickRate,
+              city: '', // Will be filled from blast logs
+              job_type: '', // Will be filled from blast logs
+              sent_at: '' // Will be filled from blast logs
+            });
+          }
+        });
+      }
+
+      setClickAnalytics(analytics);
+    } catch (error) {
+      console.error('Error loading click analytics:', error);
+    }
+  };
+
   const generateMessage = async () => {
     if (!jobDetails.trim()) {
       toast({
@@ -146,9 +239,22 @@ const SMSBlastPage = () => {
       return;
     }
 
+    if (!redirectUrl.trim()) {
+      toast({
+        title: "❌ Missing Redirect URL",
+        description: "Please enter a redirect URL.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsGenerating(true);
 
     try {
+      // Generate campaign name if not provided
+      const generatedCampaign = campaignName || `${filters.city || 'all'}-${filters.job_type || 'jobs'}-${new Date().getMonth() + 1}`.toLowerCase().replace(/\s+/g, '-');
+      setCampaignName(generatedCampaign);
+
       // Mock message generation (replace with OpenAI API call)
       const toneMap = {
         friendly: "Hey! 👋",
@@ -156,13 +262,16 @@ const SMSBlastPage = () => {
         urgent: "🚨 URGENT:"
       };
 
-      const generatedMessage = `${toneMap[tone as keyof typeof toneMap]} ${jobDetails.substring(0, 100)}... Apply now → bit.ly/jobs-${Math.random().toString(36).substr(2, 4)}`;
+      // Create short tracked link placeholder
+      const shortLink = `https://seamless-job-flow.lovable.app/s/CLICK_ID`;
+      
+      const generatedMessage = `${toneMap[tone as keyof typeof toneMap]} ${jobDetails.substring(0, 100)}... Apply now → ${shortLink}`;
       
       setMessage(generatedMessage);
       
       toast({
         title: "✅ Message Generated",
-        description: "You can edit the message before sending.",
+        description: "Click tracking link will be generated when sending.",
       });
     } catch (error) {
       console.error('Error generating message:', error);
@@ -198,14 +307,23 @@ const SMSBlastPage = () => {
     setIsSending(true);
 
     try {
-      // Send SMS blasts using edge function
+      // Send SMS blasts using edge function with click tracking
       const blastPromises = matchedUsers.map(async (user) => {
+        // Generate unique click ID for each user
+        const clickId = `${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Replace CLICK_ID placeholder with actual click ID
+        const trackedMessage = message.replace('CLICK_ID', clickId);
+        
         const { data, error } = await supabase.functions.invoke('send-sms-blast', {
           body: {
             phone_number: user.phone_number,
-            message: message,
+            message: trackedMessage,
             city: user.city,
-            job_type: user.job_type
+            job_type: user.job_type,
+            utm_campaign: campaignName,
+            redirect_url: redirectUrl,
+            click_id: clickId
           }
         });
 
@@ -221,7 +339,7 @@ const SMSBlastPage = () => {
 
       toast({
         title: "🚀 Blast Sent!",
-        description: `Successfully sent ${matchedUsers.length} SMS messages.`,
+        description: `Successfully sent ${matchedUsers.length} SMS messages with click tracking.`,
       });
 
       // Reload logs
@@ -230,6 +348,7 @@ const SMSBlastPage = () => {
       // Clear message
       setMessage("");
       setJobDetails("");
+      setCampaignName("");
 
     } catch (error) {
       console.error('Error sending blast:', error);
@@ -329,6 +448,25 @@ const SMSBlastPage = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Campaign Name</Label>
+                    <Input
+                      placeholder="e.g., bronx-daycare-nov"
+                      value={campaignName}
+                      onChange={(e) => setCampaignName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Redirect URL</Label>
+                    <Input
+                      placeholder="https://hireloop.ai/apply"
+                      value={redirectUrl}
+                      onChange={(e) => setRedirectUrl(e.target.value)}
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <Label>Job Details</Label>
                   <Textarea
@@ -466,6 +604,53 @@ const SMSBlastPage = () => {
             )}
           </div>
         </div>
+
+        {/* Click Analytics Dashboard */}
+        {clickAnalytics.length > 0 && (
+          <div className="mt-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  📊 Click Analytics
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Campaign</TableHead>
+                      <TableHead>Total Sent</TableHead>
+                      <TableHead>Clicks</TableHead>
+                      <TableHead>Click Rate</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {clickAnalytics.map((analytics) => (
+                      <TableRow key={analytics.blast_id}>
+                        <TableCell className="font-medium">
+                          {analytics.utm_campaign}
+                        </TableCell>
+                        <TableCell>{analytics.total_sent}</TableCell>
+                        <TableCell>{analytics.total_clicks}</TableCell>
+                        <TableCell>
+                          <Badge variant={analytics.click_rate > 5 ? 'default' : 'secondary'}>
+                            {analytics.click_rate.toFixed(1)}%
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="outline" size="sm">
+                            View Logs
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

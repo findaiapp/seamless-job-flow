@@ -11,6 +11,9 @@ interface SMSRequest {
   message: string;
   city?: string;
   job_type?: string;
+  utm_campaign?: string;
+  redirect_url?: string;
+  click_id?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -35,7 +38,7 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { phone_number, message, city, job_type }: SMSRequest = await req.json();
+    const { phone_number, message, city, job_type, utm_campaign, redirect_url, click_id }: SMSRequest = await req.json();
 
     if (!phone_number || !message) {
       return new Response(
@@ -51,7 +54,7 @@ const handler = async (req: Request): Promise<Response> => {
     // For now, we'll just log the SMS and mark as sent
     console.log(`SMS to ${phone_number}: ${message}`);
 
-    // Log the SMS blast
+    // Log the SMS blast with tracking data
     const { error: logError } = await supabase
       .from('sms_blast_logs')
       .insert({
@@ -59,6 +62,9 @@ const handler = async (req: Request): Promise<Response> => {
         message,
         city: city || null,
         job_type: job_type || null,
+        utm_campaign: utm_campaign || null,
+        redirect_url: redirect_url || null,
+        click_id: click_id || null,
         status: 'sent',
         utm_source: 'sms_blast'
       });
