@@ -369,12 +369,55 @@ export type Database = {
         }
         Relationships: []
       }
+      sms_attributions: {
+        Row: {
+          converted_url: string | null
+          created_at: string
+          event_type: string
+          id: string
+          message_id: string | null
+          phone_number: string
+          timestamp: string
+          value: number | null
+        }
+        Insert: {
+          converted_url?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          message_id?: string | null
+          phone_number: string
+          timestamp?: string
+          value?: number | null
+        }
+        Update: {
+          converted_url?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          message_id?: string | null
+          phone_number?: string
+          timestamp?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_attributions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "sms_blast_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sms_blast_logs: {
         Row: {
+          ab_test_id: string | null
           city: string | null
           click_id: string | null
           click_tracking_url: string | null
           id: string
+          is_ab_test: boolean | null
           job_type: string | null
           message: string
           phone_number: string
@@ -383,12 +426,15 @@ export type Database = {
           status: string
           utm_campaign: string | null
           utm_source: string | null
+          variant_label: string | null
         }
         Insert: {
+          ab_test_id?: string | null
           city?: string | null
           click_id?: string | null
           click_tracking_url?: string | null
           id?: string
+          is_ab_test?: boolean | null
           job_type?: string | null
           message: string
           phone_number: string
@@ -397,12 +443,15 @@ export type Database = {
           status?: string
           utm_campaign?: string | null
           utm_source?: string | null
+          variant_label?: string | null
         }
         Update: {
+          ab_test_id?: string | null
           city?: string | null
           click_id?: string | null
           click_tracking_url?: string | null
           id?: string
+          is_ab_test?: boolean | null
           job_type?: string | null
           message?: string
           phone_number?: string
@@ -411,6 +460,7 @@ export type Database = {
           status?: string
           utm_campaign?: string | null
           utm_source?: string | null
+          variant_label?: string | null
         }
         Relationships: []
       }

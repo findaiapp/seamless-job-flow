@@ -14,6 +14,9 @@ interface SMSRequest {
   utm_campaign?: string;
   redirect_url?: string;
   click_id?: string;
+  variant_label?: string;
+  ab_test_id?: string;
+  is_ab_test?: boolean;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -38,7 +41,7 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { phone_number, message, city, job_type, utm_campaign, redirect_url, click_id }: SMSRequest = await req.json();
+    const { phone_number, message, city, job_type, utm_campaign, redirect_url, click_id, variant_label, ab_test_id, is_ab_test }: SMSRequest = await req.json();
 
     if (!phone_number || !message) {
       return new Response(
@@ -65,6 +68,9 @@ const handler = async (req: Request): Promise<Response> => {
         utm_campaign: utm_campaign || null,
         redirect_url: redirect_url || null,
         click_id: click_id || null,
+        variant_label: variant_label || null,
+        ab_test_id: ab_test_id || null,
+        is_ab_test: is_ab_test || false,
         status: 'sent',
         utm_source: 'sms_blast'
       });
