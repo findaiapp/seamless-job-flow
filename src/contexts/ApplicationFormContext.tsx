@@ -2,6 +2,11 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ApplicationFormData {
+  // Job context
+  jobId?: string;
+  jobTitle?: string;
+  jobCompany?: string;
+  
   // Step 1: Personal Info
   fullName: string;
   phone: string;
@@ -10,9 +15,11 @@ interface ApplicationFormData {
   // Step 2: Skills & Availability
   skills: string;
   availability: string;
+  
+  // Step 3: Resume Upload
   resumeUrl: string;
 
-  // Step 3: Referral Info
+  // Step 4: Referral Info
   referralCode: string;
   source: string;
 
@@ -25,6 +32,7 @@ interface ApplicationFormData {
 interface ApplicationFormContextType {
   formData: ApplicationFormData;
   updateFormData: (data: Partial<ApplicationFormData>) => void;
+  setJobContext: (jobId: string, jobTitle?: string, jobCompany?: string) => void;
   saveToSupabase: () => Promise<{ success: boolean; id?: string }>;
   submitApplication: () => Promise<{ success: boolean }>;
   canAccessStep: (step: number) => boolean;
@@ -33,6 +41,9 @@ interface ApplicationFormContextType {
 }
 
 const initialFormData: ApplicationFormData = {
+  jobId: '',
+  jobTitle: '',
+  jobCompany: '',
   fullName: '',
   phone: '',
   location: '',
@@ -95,6 +106,15 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
 
   const updateFormData = (data: Partial<ApplicationFormData>) => {
     setFormData(prev => ({ ...prev, ...data }));
+  };
+
+  const setJobContext = (jobId: string, jobTitle?: string, jobCompany?: string) => {
+    setFormData(prev => ({
+      ...prev,
+      jobId,
+      jobTitle: jobTitle || '',
+      jobCompany: jobCompany || ''
+    }));
   };
 
   const saveToSupabase = async (): Promise<{ success: boolean; id?: string }> => {
@@ -186,13 +206,14 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
 
   return (
     <ApplicationFormContext.Provider value={{
-      formData,
-      updateFormData,
-      saveToSupabase,
-      submitApplication,
-      canAccessStep,
-      resetForm,
-      isLoading,
+    formData,
+    updateFormData,
+    setJobContext,
+    saveToSupabase,
+    submitApplication,
+    canAccessStep,
+    resetForm,
+    isLoading,
     }}>
       {children}
     </ApplicationFormContext.Provider>

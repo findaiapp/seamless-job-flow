@@ -57,6 +57,19 @@ const StepOnePersonalInfo = () => {
         </div>
 
         <Card className="shadow-xl border-0 bg-card/95 backdrop-blur">
+          {/* Job Context Display */}
+          {formData.jobTitle && (
+            <div className="bg-primary/10 border-b border-primary/20 p-4 rounded-t-lg">
+              <div className="text-center">
+                <h3 className="font-semibold text-foreground">Applying for:</h3>
+                <p className="text-lg font-bold text-primary">{formData.jobTitle}</p>
+                {formData.jobCompany && (
+                  <p className="text-sm text-muted-foreground">at {formData.jobCompany}</p>
+                )}
+              </div>
+            </div>
+          )}
+
           <CardHeader className="text-center pb-6">
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
               Basic Info ✨

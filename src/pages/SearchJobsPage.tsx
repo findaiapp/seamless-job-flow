@@ -1011,28 +1011,18 @@ export default function SearchJobsPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          <label className="text-xs text-muted-foreground">Show Real Jobs</label>
-          <Switch
-            checked={showOnlyReal}
+          <span className="text-sm text-muted-foreground">Real Jobs:</span>
+          <Switch 
+            checked={showOnlyReal} 
             onCheckedChange={setShowOnlyReal}
           />
-          {totalJobs < 1000 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSeedDatabase}
-              disabled={seeding}
-              className="text-xs ml-2"
-            >
-              {seeding ? "Seeding..." : "Seed 1,635 Jobs"}
-            </Button>
-          )}
         </div>
+
       </div>
 
       {/* Use new Smart Pagination Feed instead of the old job grid */}
       {showOnlyReal ? (
-        <>
+        <div className="p-4">
           {/* Real Jobs Grid Layout - Keep existing for real jobs */}
           <div className="mb-4 flex items-center justify-between">
             <div>
@@ -1124,7 +1114,7 @@ export default function SearchJobsPage() {
               You've seen all {totalJobs} available jobs. Check back later for new postings!
             </div>
           )}
-        </>
+        </div>
       ) : (
         <div className="space-y-6">
           {/* Jobs You'll Love Section */}

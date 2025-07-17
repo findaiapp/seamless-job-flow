@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useParams, useNavigate } from 'react-router-do
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { useApplicationForm } from '@/contexts/ApplicationFormContext';
 import ApplicationStepGuard from './ApplicationStepGuard';
 import StepOnePersonalInfo from '@/pages/StepOnePersonalInfo';
 import StepTwoPreferences from '@/pages/StepTwoPreferences';
@@ -15,6 +16,7 @@ const ApplicationFlowRouter: React.FC = () => {
   const { job_id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { setJobContext } = useApplicationForm();
   const [jobData, setJobData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,12 +38,17 @@ const ApplicationFlowRouter: React.FC = () => {
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching job:', error);
-        // Don't navigate away - show custom error instead
         setJobData(null);
         return;
       }
 
-      setJobData(job);
+      if (job) {
+        setJobData(job);
+        // Set job context in the application form
+        setJobContext(job.id, job.title, job.company);
+      } else {
+        setJobData(null);
+      }
     } catch (error) {
       console.error('Error fetching job:', error);
       setJobData(null);
