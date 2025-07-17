@@ -15,6 +15,7 @@ import AlertsPage from "./pages/AlertsPage";
 import SettingsPage from "./pages/SettingsPage";
 import StepOnePersonalInfo from "./pages/StepOnePersonalInfo";
 import StepTwoPreferences from "./pages/StepTwoPreferences";
+import StepThreeLocation from "./pages/StepThreeLocation";
 import NotFound from "./pages/NotFound";
 import DebugBanner from "./components/DebugBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/step-one-personal-info" element={<StepOnePersonalInfo />} />
             <Route path="/step-two-preferences" element={<StepTwoPreferences />} />
+            <Route path="/step-three-location" element={<StepThreeLocation />} />
             <Route path="/thank-you" element={<ThankYouPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
