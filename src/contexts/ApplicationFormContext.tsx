@@ -4,18 +4,18 @@ import { supabase } from '@/integrations/supabase/client';
 interface ApplicationFormData {
   // Step 1: Personal Info
   fullName: string;
-  email: string;
   phone: string;
-  
-  // Step 2: Preferences
-  jobType: string;
-  schedule: string;
+  location: string;
+
+  // Step 2: Skills & Availability
+  skills: string;
   availability: string;
-  
-  // Step 3: Location
-  city: string;
-  neighborhood: string;
-  
+  resumeUrl: string;
+
+  // Step 3: Referral Info
+  referralCode: string;
+  source: string;
+
   // Meta
   applicationId?: string;
   currentStep: number;
@@ -34,13 +34,13 @@ interface ApplicationFormContextType {
 
 const initialFormData: ApplicationFormData = {
   fullName: '',
-  email: '',
   phone: '',
-  jobType: '',
-  schedule: '',
+  location: '',
+  skills: '',
   availability: '',
-  city: '',
-  neighborhood: '',
+  resumeUrl: '',
+  referralCode: '',
+  source: '',
   currentStep: 1,
   isSubmitted: false,
 };
@@ -61,21 +61,20 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
       const { data: applications, error } = await supabase
         .from('applications')
         .select('*')
-        .eq('status', 'in_progress')
         .order('created_at', { ascending: false })
         .limit(1);
 
       if (!error && applications && applications.length > 0) {
         const app = applications[0];
         setFormData({
-          fullName: app.name || '',
-          email: app.email || '',
+          fullName: app.full_name || '',
           phone: app.phone || '',
-          jobType: app.role || '',
-          schedule: app.availability?.split(' - ')[0] || '',
-          availability: app.availability?.split(' - ')[1] || '',
-          city: app.location?.split(', ')[0] || '',
-          neighborhood: app.location?.split(', ')[1] || '',
+          location: app.location || '',
+          skills: app.skills || '',
+          availability: app.availability || '',
+          resumeUrl: app.resume_url || '',
+          referralCode: app.referral_code || '',
+          source: app.source || '',
           applicationId: app.id,
           currentStep: determineCurrentStep(app),
           isSubmitted: false,
@@ -87,9 +86,9 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
   };
 
   const determineCurrentStep = (app: any): number => {
-    if (!app.name || !app.email || !app.phone) return 1;
-    if (!app.role || !app.availability) return 2;
-    if (!app.location) return 3;
+    if (!app.full_name || !app.phone || !app.location) return 1;
+    if (!app.skills || !app.availability) return 2;
+    if (!app.source) return 3;
     return 4;
   };
 
@@ -101,18 +100,14 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
     setIsLoading(true);
     try {
       const applicationData = {
-        name: formData.fullName,
-        email: formData.email,
+        full_name: formData.fullName,
         phone: formData.phone,
-        role: formData.jobType,
-        availability: formData.schedule && formData.availability ? 
-          `${formData.schedule} - ${formData.availability}` : '',
-        location: formData.neighborhood ? 
-          `${formData.city}, ${formData.neighborhood}` : formData.city,
-        status: 'in_progress',
-        company_name: 'TBD',
-        job_title: 'TBD',
-        job_id: formData.applicationId ? undefined : 'temp-' + Date.now(),
+        location: formData.location,
+        skills: formData.skills,
+        availability: formData.availability,
+        resume_url: formData.resumeUrl,
+        referral_code: formData.referralCode,
+        source: formData.source,
         updated_at: new Date().toISOString(),
       };
 
@@ -151,18 +146,17 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
   const submitApplication = async (): Promise<{ success: boolean }> => {
     setIsLoading(true);
     try {
-      if (!formData.applicationId) {
-        const saveResult = await saveToSupabase();
-        if (!saveResult.success) return { success: false };
-      }
+      // First save all current data
+      const saveResult = await saveToSupabase();
+      if (!saveResult.success) return { success: false };
 
+      // Mark as submitted
       const { error } = await supabase
         .from('applications')
         .update({
-          status: 'submitted',
           submitted_at: new Date().toISOString(),
         })
-        .eq('id', formData.applicationId);
+        .eq('id', formData.applicationId || saveResult.id);
 
       if (error) throw error;
 
@@ -177,17 +171,17 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
   };
 
   const canAccessStep = (step: number): boolean => {
-    const { fullName, email, phone, jobType, schedule, availability, city } = formData;
+    const { fullName, phone, location, skills, availability, source } = formData;
     
     switch (step) {
       case 1:
         return true;
       case 2:
-        return !!(fullName && email && phone);
+        return !!(fullName && phone && location);
       case 3:
-        return !!(fullName && email && phone && jobType && schedule && availability);
+        return !!(fullName && phone && location && skills && availability);
       case 4:
-        return !!(fullName && email && phone && jobType && schedule && availability && city);
+        return !!(fullName && phone && location && skills && availability && source);
       case 5:
         return formData.isSubmitted;
       default:

@@ -2,16 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useApplicationFormData } from "@/hooks/useApplicationFormData";
+import { useApplicationForm } from "@/contexts/ApplicationFormContext";
 import { useToast } from "@/hooks/use-toast";
-import { User, Mail, Briefcase, MapPin, Edit } from "lucide-react";
+import { User, Phone, MapPin, Briefcase, Clock, Link, Gift, Edit } from "lucide-react";
 
-interface ReviewPageProps {}
-
-const ReviewPage: React.FC<ReviewPageProps> = () => {
+const StepFourReview = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const contextData = useApplicationFormData();
+  const { formData, submitApplication, isLoading } = useApplicationForm();
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
@@ -20,12 +18,12 @@ const ReviewPage: React.FC<ReviewPageProps> = () => {
 
   // Auto-submit on page load
   useEffect(() => {
-    if (!submitted && contextData.formData.fullName && !contextData.isLoading) {
+    if (!submitted && formData.fullName && !isLoading) {
       setSubmitted(true);
-      contextData.submitApplication().then((res) => {
+      submitApplication().then((res) => {
         if (res.success) {
           navigate("/apply/step-5", {
-            state: { name: contextData.formData.fullName || "there" },
+            state: { name: formData.fullName || "there" },
           });
         } else {
           toast({
@@ -37,9 +35,9 @@ const ReviewPage: React.FC<ReviewPageProps> = () => {
         }
       });
     }
-  }, [submitted, contextData.formData.fullName, contextData.isLoading, contextData, navigate, toast]);
+  }, [submitted, formData.fullName, isLoading, submitApplication, navigate, toast]);
 
-  if (contextData.isLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex items-center gap-2">
@@ -50,7 +48,7 @@ const ReviewPage: React.FC<ReviewPageProps> = () => {
     );
   }
 
-  if (!contextData.formData.fullName || !contextData.formData.email) {
+  if (!formData.fullName || !formData.phone) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <div className="text-center">
@@ -64,144 +62,159 @@ const ReviewPage: React.FC<ReviewPageProps> = () => {
     );
   }
 
-  const userData = contextData.formData;
-
   return (
-    <div className="min-h-screen bg-background flex flex-col px-4 py-6 md:px-6 md:py-8">
-      {/* Header */}
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2 animate-fade-in">
-          Review Your Application
-        </h1>
-        <p className="text-muted-foreground text-base md:text-lg animate-fade-in">
-          Make sure everything looks right before we send it off.
-        </p>
-      </div>
-
-      {/* Review Sections */}
-      <div className="flex-1 space-y-4">
-        {/* Personal Info */}
-        <Card className="animate-fade-in">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <User className="h-5 w-5 text-primary" />
-                <div>
-                  <h3 className="font-semibold text-foreground">Personal Information</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {userData.fullName || "Not provided"}
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/apply/step-1")}
-                className="p-2"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Contact Info */}
-        <Card className="animate-fade-in">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-primary" />
-                <div>
-                  <h3 className="font-semibold text-foreground">Contact Information</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {userData.email || "Not provided"}
-                  </p>
-                  {userData.phone && (
-                    <p className="text-sm text-muted-foreground">
-                      {userData.phone}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/apply/step-1")}
-                className="p-2"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Job Preferences */}
-        <Card className="animate-fade-in">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Briefcase className="h-5 w-5 text-primary" />
-                <div>
-                  <h3 className="font-semibold text-foreground">Job Preferences</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {userData.jobType || "Not specified"}
-                  </p>
-                  {userData.schedule && (
-                    <p className="text-sm text-muted-foreground">
-                      {userData.schedule} - {userData.availability}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/apply/step-2")}
-                className="p-2"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Location */}
-        <Card className="animate-fade-in">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-primary" />
-                <div>
-                  <h3 className="font-semibold text-foreground">Preferred Location</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {userData.neighborhood ? `${userData.city}, ${userData.neighborhood}` : userData.city || "Not specified"}
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/apply/step-3")}
-                className="p-2"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Auto-submitting indicator */}
-      <div className="pt-8 pb-6">
-        <div className="w-full h-14 flex items-center justify-center bg-primary/10 rounded-lg">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <span className="text-primary font-medium">Submitting your application...</span>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+      <div className="w-full max-w-lg mx-auto">
+        {/* Progress indicator */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-muted-foreground">Step 4 of 4</span>
+            <span className="text-sm font-medium text-primary">100%</span>
+          </div>
+          <div className="w-full bg-secondary rounded-full h-2">
+            <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: '100%' }}></div>
           </div>
         </div>
+
+        <Card className="shadow-xl border-0 bg-card/95 backdrop-blur">
+          <CardContent className="p-6">
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent mb-2">
+                Review Your Application
+              </h1>
+              <p className="text-muted-foreground">
+                We're submitting your application now!
+              </p>
+            </div>
+
+            {/* Review Sections */}
+            <div className="space-y-4">
+              {/* Personal Info */}
+              <Card className="border border-border/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <User className="h-5 w-5 text-primary" />
+                      <div>
+                        <h3 className="font-semibold text-foreground">Personal Information</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {formData.fullName}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate("/apply/step-1")}
+                      className="p-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Contact Info */}
+              <Card className="border border-border/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Phone className="h-5 w-5 text-primary" />
+                      <div>
+                        <h3 className="font-semibold text-foreground">Contact & Location</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {formData.phone}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {formData.location}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate("/apply/step-1")}
+                      className="p-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Skills & Availability */}
+              <Card className="border border-border/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Briefcase className="h-5 w-5 text-primary" />
+                      <div>
+                        <h3 className="font-semibold text-foreground">Skills & Availability</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {formData.skills || "Not specified"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Can start: {formData.availability}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate("/apply/step-2")}
+                      className="p-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Source */}
+              <Card className="border border-border/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Gift className="h-5 w-5 text-primary" />
+                      <div>
+                        <h3 className="font-semibold text-foreground">How you found us</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {formData.source || "Not specified"}
+                        </p>
+                        {formData.referralCode && (
+                          <p className="text-sm text-muted-foreground">
+                            Referral: {formData.referralCode}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate("/apply/step-3")}
+                      className="p-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Auto-submitting indicator */}
+            <div className="mt-8">
+              <div className="w-full h-14 flex items-center justify-center bg-primary/10 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <span className="text-primary font-medium">Submitting your application...</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 };
 
-export default ReviewPage;
+export default StepFourReview;

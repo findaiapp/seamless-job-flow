@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 export interface Job {
   id: string;
@@ -47,9 +46,44 @@ export function useFakePaginationLogic(): UseFakePaginationLogicReturn {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalJobs, setTotalJobs] = useState(0);
 
-  const generatePayRange = () => {
-    const ranges = ['$15-18/hr', '$16-20/hr', '$18-22/hr', '$20-25/hr', '$22-28/hr', '$25-30/hr'];
-    return ranges[Math.floor(Math.random() * ranges.length)];
+  const generateMockJobs = (page: number): Job[] => {
+    const mockJobs: Job[] = [];
+    const jobTitles = ['Delivery Driver', 'Warehouse Associate', 'Security Guard', 'Kitchen Helper', 'Cashier', 'Customer Service'];
+    const companies = ['QuickDelivery Inc', 'StorageCorp', 'SecureGuard LLC', 'FoodService Co', 'RetailMax', 'ServicePro'];
+    const locations = ['Brooklyn, NY', 'Queens, NY', 'Manhattan, NY', 'Bronx, NY', 'Newark, NJ', 'Jersey City, NJ'];
+
+    for (let i = 0; i < JOBS_PER_BATCH; i++) {
+      const jobIndex = (page - 1) * JOBS_PER_BATCH + i;
+      const titleIndex = jobIndex % jobTitles.length;
+      const companyIndex = jobIndex % companies.length;
+      const locationIndex = jobIndex % locations.length;
+
+      mockJobs.push({
+        id: `job-${jobIndex + 1}`,
+        title: jobTitles[titleIndex],
+        company: companies[companyIndex],
+        location: locations[locationIndex],
+        salary_min: 15 + Math.floor(Math.random() * 10),
+        salary_max: 20 + Math.floor(Math.random() * 15),
+        pay_range: `$${15 + Math.floor(Math.random() * 5)}-${20 + Math.floor(Math.random() * 10)}/hr`,
+        description: `Exciting opportunity for a ${jobTitles[titleIndex]} position with competitive pay and benefits.`,
+        job_type: 'Full-time',
+        category: 'General',
+        is_verified: Math.random() > 0.3,
+        is_hot: Math.random() > 0.7,
+        is_featured: Math.random() > 0.8,
+        brand_name: null,
+        contact_email: `hr@${companies[companyIndex].toLowerCase().replace(/\s+/g, '')}.com`,
+        employer_email: `hr@${companies[companyIndex].toLowerCase().replace(/\s+/g, '')}.com`,
+        job_tags: ['Entry Level', 'Benefits', 'Flexible Schedule'].slice(0, Math.floor(Math.random() * 3) + 1),
+        created_at: new Date().toISOString(),
+        matchScore: Math.floor(Math.random() * 40) + 60,
+        matchReasons: ['Experience Match', 'Location Preference', 'Salary Range'].slice(0, Math.floor(Math.random() * 3) + 1),
+        urgencyScore: Math.floor(Math.random() * 10) + 1
+      });
+    }
+
+    return mockJobs;
   };
 
   const loadJobs = useCallback(async (page: number, append = false) => {
@@ -60,59 +94,21 @@ export function useFakePaginationLogic(): UseFakePaginationLogicReturn {
     }
 
     try {
-      const from = (page - 1) * JOBS_PER_BATCH;
-      const to = from + JOBS_PER_BATCH - 1;
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Get total count first
-      const { count } = await supabase
-        .from('user_posted_jobs')
-        .select('*', { count: 'exact', head: true });
+      const mockJobs = generateMockJobs(page);
+      const totalCount = 100; // Mock total count
 
-      let query = supabase
-        .from('user_posted_jobs')
-        .select('*')
-        .range(from, to)
-        .order('created_at', { ascending: false });
-
-      const { data, error } = await query;
-      
-      if (error) throw error;
-
-      // Transform Supabase data to Job interface
-      const transformedJobs: Job[] = (data || []).map(item => ({
-        id: item.id,
-        title: item.job_title || 'Unknown Position',
-        company: item.company || 'Unknown Company',
-        location: item.location || 'Remote',
-        salary_min: item.salary_min,
-        salary_max: item.salary_max,
-        pay_range: generatePayRange(),
-        description: item.description || 'No description available',
-        job_type: item.type || null,
-        category: null,
-        is_verified: !!item.contact_email,
-        is_hot: Math.random() > 0.7,
-        is_featured: Math.random() > 0.8,
-        brand_name: null,
-        contact_email: item.contact_email,
-        employer_email: item.contact_email,
-        job_tags: item.tags || null,
-        created_at: item.created_at,
-        matchScore: Math.floor(Math.random() * 40) + 60, // 60-100
-        matchReasons: ['Experience Match', 'Location Preference', 'Salary Range'].slice(0, Math.floor(Math.random() * 3) + 1),
-        urgencyScore: Math.floor(Math.random() * 10) + 1
-      }));
-
-      const totalCount = count || 0;
       setTotalJobs(totalCount);
 
       if (append) {
-        setJobs(prev => [...prev, ...transformedJobs]);
+        setJobs(prev => [...prev, ...mockJobs]);
       } else {
-        setJobs(transformedJobs);
+        setJobs(mockJobs);
       }
       
-      setHasMore(transformedJobs.length === JOBS_PER_BATCH && totalCount > page * JOBS_PER_BATCH);
+      setHasMore(totalCount > page * JOBS_PER_BATCH);
       
     } catch (error) {
       console.error('Error loading jobs:', error);
@@ -138,23 +134,8 @@ export function useFakePaginationLogic(): UseFakePaginationLogicReturn {
   }, [loadJobs]);
 
   const trackPaginationActivity = useCallback(async (action: string, metadata?: any) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      await supabase.from('user_activity').insert({
-        user_id: user.id,
-        job_id: 'pagination',
-        activity_type: action,
-        job_title: `Page ${currentPage}`,
-        job_category: 'pagination',
-        job_type: action,
-        pay_range: metadata?.totalJobs ? `${metadata.totalJobs} jobs` : '',
-        location: metadata?.location || ''
-      });
-    } catch (error) {
-      console.error('Error tracking pagination activity:', error);
-    }
+    // Mock tracking function - no Supabase dependency
+    console.log('Tracking pagination activity:', action, metadata);
   }, [currentPage]);
 
   // Load initial jobs
