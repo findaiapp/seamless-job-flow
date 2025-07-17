@@ -1,27 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApplicationForm } from '@/contexts/ApplicationFormContext';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { CheckCircle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { CheckCircle, Search, FileText } from 'lucide-react';
 import Confetti from 'react-confetti';
 
-const StepFiveSuccess = () => {
+const StepSixSuccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { formData, resetForm } = useApplicationForm();
+  const { toast } = useToast();
+  
   const [showConfetti, setShowConfetti] = useState(true);
+  const [countdown, setCountdown] = useState(7);
   const [windowDimensions, setWindowDimensions] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
     height: typeof window !== 'undefined' ? window.innerHeight : 0,
   });
 
-  // Get name from location state, form data, or default to "there"
+  // Get name from location state, form data, or default
   const userName = (location.state as { name?: string })?.name || 
                    formData.fullName || 
                    "there";
+  
+  const jobTitle = formData.jobTitle || 'this position';
+  const jobCompany = formData.jobCompany;
 
   useEffect(() => {
-    // Auto-scroll to top
     window.scrollTo(0, 0);
 
     // Handle window resize for confetti
@@ -34,79 +41,158 @@ const StepFiveSuccess = () => {
 
     window.addEventListener('resize', handleResize);
 
-    // Stop confetti after 5 seconds
-    const timer = setTimeout(() => {
+    // Stop confetti after 4 seconds
+    const confettiTimer = setTimeout(() => {
       setShowConfetti(false);
-    }, 5000);
+    }, 4000);
+
+    // Clean up application context after 1 second
+    const contextCleanup = setTimeout(() => {
+      resetForm();
+    }, 1000);
+
+    // Auto-redirect countdown
+    const countdownInterval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          toast({
+            title: "Redirecting you back to search...",
+            description: "Find more opportunities!",
+          });
+          navigate('/search-jobs');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      clearTimeout(timer);
+      clearTimeout(confettiTimer);
+      clearTimeout(contextCleanup);
+      clearInterval(countdownInterval);
     };
-  }, []);
+  }, [navigate, resetForm, toast]);
 
-  const handleReturnToJobs = () => {
-    resetForm(); // Reset the form for next application
+  const handleBackToSearch = () => {
     navigate('/search-jobs');
   };
 
+  const handleViewApplication = () => {
+    toast({
+      title: "Feature Coming Soon",
+      description: "Application viewing will be available soon!",
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-background to-primary/5 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Confetti Animation */}
       {showConfetti && (
         <Confetti
           width={windowDimensions.width}
           height={windowDimensions.height}
           recycle={false}
           numberOfPieces={200}
-          gravity={0.2}
-          colors={['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#FFD700', '#FF6B6B', '#4ECDC4']}
+          gravity={0.3}
+          colors={['hsl(var(--primary))', '#FFD700', '#FF6B6B', '#4ECDC4', '#95E1D3']}
         />
       )}
-      
-      <div className="max-w-2xl mx-auto text-center animate-fade-in">
-        {/* Success Icon */}
-        <div className="mb-8 flex justify-center">
-          <div className="relative">
-            <CheckCircle className="w-24 h-24 text-primary animate-scale-in" />
-            <div className="absolute inset-0 w-24 h-24 rounded-full border-4 border-primary/20 animate-pulse" />
-          </div>
-        </div>
 
-        {/* Main Congratulations Message */}
-        <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-primary to-secondary bg-clip-text text-transparent mb-6 leading-tight">
-          🎉 You did it, {userName}!
-        </h1>
-        
-        <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-8">
-          Your application is complete.
-        </h2>
+      <div className="w-full max-w-lg mx-auto relative z-10">
+        <Card className="shadow-2xl border-0 bg-card/95 backdrop-blur animate-fade-in">
+          <CardContent className="p-8 text-center">
+            {/* Success Icon */}
+            <div className="mb-6">
+              <div className="w-20 h-20 mx-auto mb-4 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center animate-scale-in">
+                <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+              </div>
+              
+              {/* Main Headline */}
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-500 bg-clip-text text-transparent mb-2">
+                Application Sent! 🎯
+              </h1>
+              
+              {/* Personalized Message */}
+              <p className="text-lg text-muted-foreground mb-4">
+                Thanks {userName}! We'll text or email you if selected.
+              </p>
+            </div>
 
-        {/* Subtitle */}
-        <p className="text-lg md:text-xl text-muted-foreground mb-12 max-w-lg mx-auto leading-relaxed">
-          We've sent your info to our hiring team. You'll hear back soon!
-        </p>
+            {/* Job Details */}
+            {jobTitle && (
+              <div className="mb-6 p-4 bg-primary/10 rounded-lg border border-primary/20">
+                <h3 className="font-semibold text-foreground mb-1">Applied for:</h3>
+                <p className="text-lg font-bold text-primary">{jobTitle}</p>
+                {jobCompany && (
+                  <p className="text-sm text-muted-foreground">at {jobCompany}</p>
+                )}
+              </div>
+            )}
 
-        {/* CTA Button */}
-        <Button 
-          onClick={handleReturnToJobs}
-          size="lg"
-          className="text-lg px-8 py-6 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
-        >
-          Return to Job Feed →
-        </Button>
+            {/* What's Next */}
+            <div className="mb-8 text-left">
+              <h3 className="font-semibold text-foreground mb-3 text-center">What happens next?</h3>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                  <span>We'll review your application within 24-48 hours</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                  <span>If selected, we'll text or email you to schedule an interview</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                  <span>Keep applying to increase your chances!</span>
+                </div>
+              </div>
+            </div>
 
-        {/* Success Badge */}
-        <div className="mt-16 inline-flex items-center gap-2 px-6 py-3 bg-primary/10 border border-primary/20 rounded-full text-primary font-medium">
-          <span className="text-2xl">🎯</span>
-          <span>Application Submitted Successfully</span>
-        </div>
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <Button
+                onClick={handleBackToSearch}
+                className="w-full h-12 text-base font-semibold"
+                size="lg"
+              >
+                <Search className="w-5 h-5 mr-2" />
+                🔍 Back to Job Search
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={handleViewApplication}
+                className="w-full h-12"
+              >
+                <FileText className="w-5 h-5 mr-2" />
+                📄 View My Application
+              </Button>
+            </div>
+
+            {/* Auto-redirect Notice */}
+            <div className="mt-6 p-3 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                Auto-redirecting to job search in {countdown} seconds...
+              </p>
+              <div className="w-full bg-muted rounded-full h-1 mt-2">
+                <div 
+                  className="bg-primary h-1 rounded-full transition-all duration-1000"
+                  style={{ width: `${((7 - countdown) / 7) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Floating Success Elements */}
+        <div className="absolute -top-4 -left-4 text-4xl animate-bounce">🎉</div>
+        <div className="absolute -top-2 -right-6 text-3xl animate-pulse">✨</div>
+        <div className="absolute -bottom-2 -left-6 text-3xl animate-bounce delay-500">🎊</div>
+        <div className="absolute -bottom-4 -right-4 text-4xl animate-pulse delay-300">🎯</div>
       </div>
-
-      {/* Background decoration */}
-      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-primary/5 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-secondary/5 rounded-full blur-3xl animate-pulse delay-1000" />
     </div>
   );
 };
 
-export default StepFiveSuccess;
+export default StepSixSuccess;
