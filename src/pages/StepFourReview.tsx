@@ -226,5 +226,4 @@ const ReviewPage: React.FC<ReviewPageProps> = () => {
   );
 };
 
-const StepFourReview = ReviewPage;
-export default StepFourReview;
+export default ReviewPage;
