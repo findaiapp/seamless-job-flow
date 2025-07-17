@@ -133,8 +133,7 @@ const CraigslistPostGenerator = () => {
     try {
       const utmLink = `https://hireloop.ai/apply?job=${jobType.toLowerCase().replace(' ', '-')}&city=${city.toLowerCase()}&ref=craigslist`;
       
-      // Use database function to bypass TypeScript type issues
-      // Mock post creation
+      // Mock post creation - no database calls
       const mockPostId = `mock-${Date.now()}`;
       
       toast({

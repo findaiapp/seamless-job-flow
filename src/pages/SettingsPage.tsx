@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsPage() {
-  // Mock preferences since useJobAlerts doesn't have these properties
+  // Mock preferences - standalone implementation
   const [preferences, setPreferences] = useState({
     job_alerts_enabled: true,
     preferred_channel: "email",
