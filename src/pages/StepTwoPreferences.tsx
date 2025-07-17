@@ -11,10 +11,10 @@ import { useToast } from '@/hooks/use-toast';
 
 const StepTwoPreferences = () => {
   const navigate = useNavigate();
-  const { formData, updateFormData, saveToSupabase, isLoading } = useApplicationForm();
+  const { formData, updateField, saveCurrentStep, goToStep, isLoading } = useApplicationForm();
   const { toast } = useToast();
 
-  const [skills, setSkills] = useState(formData.skills);
+  const [experience, setExperience] = useState(formData.experience || '');
   const [availability, setAvailability] = useState(formData.availability);
   
 
@@ -31,23 +31,28 @@ const StepTwoPreferences = () => {
   ];
 
   const handleNext = async () => {
-    if (!skills.trim() || !availability) {
+    if (!experience.trim() || !availability) {
       toast({
         title: "Missing Information",
-        description: "Please fill in your skills and availability",
+        description: "Please fill in your experience and availability",
         variant: "destructive",
       });
       return;
     }
 
-    updateFormData({
-      skills: skills.trim(),
-      availability,
-      currentStep: 3,
-    });
+    // Update form data
+    updateField('experience', experience.trim());
+    updateField('availability', availability);
+    updateField('step', 2);
 
-    await saveToSupabase();
-    navigate('step-3');
+    // Save current step
+    const saved = await saveCurrentStep();
+    if (saved) {
+      // Navigate to step 3
+      if (goToStep(3)) {
+        navigate('step-3');
+      }
+    }
   };
 
   const handleBack = () => {
@@ -80,14 +85,14 @@ const StepTwoPreferences = () => {
           
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="skills" className="text-sm font-medium">
+              <Label htmlFor="experience" className="text-sm font-medium">
                 Skills & Experience *
               </Label>
               <Textarea
-                id="skills"
+                id="experience"
                 placeholder="Describe your relevant skills and experience..."
-                value={skills}
-                onChange={(e) => setSkills(e.target.value)}
+                value={experience}
+                onChange={(e) => setExperience(e.target.value)}
                 className="min-h-[100px]"
               />
             </div>

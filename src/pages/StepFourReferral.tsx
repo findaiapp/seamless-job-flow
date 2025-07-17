@@ -10,43 +10,47 @@ import { useToast } from '@/hooks/use-toast';
 
 const StepFourReferral = () => {
   const navigate = useNavigate();
-  const { formData, updateFormData, saveToSupabase, isLoading } = useApplicationForm();
+  const { formData, updateField, saveCurrentStep, goToStep, isLoading } = useApplicationForm();
   const { toast } = useToast();
 
-  const [referralCode, setReferralCode] = useState(formData.referralCode);
-  const [source, setSource] = useState(formData.source);
+  const [email, setEmail] = useState(formData.email || '');
+  const [source, setSource] = useState('direct');
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   const sourceOptions = [
-    'Google Search',
-    'Social Media (Instagram, TikTok, etc.)',
-    'Friend/Family Referral',
-    'Job Board (Indeed, LinkedIn, etc.)',
-    'Company Website',
-    'Other'
+    { value: 'direct', label: 'Job search website' },
+    { value: 'friend', label: 'Friend or family' },
+    { value: 'social', label: 'Social media' },
+    { value: 'advertisement', label: 'Advertisement' },
+    { value: 'other', label: 'Other' }
   ];
 
   const handleNext = async () => {
-    if (!source) {
+    // Email is optional, but if provided should be valid
+    if (email && !email.includes('@')) {
       toast({
-        title: "Missing Information",
-        description: "Please tell us how you heard about us",
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
         variant: "destructive",
       });
       return;
     }
 
-    updateFormData({
-      referralCode: referralCode.trim(),
-      source,
-      currentStep: 5,
-    });
+    // Update form data
+    updateField('email', email.trim());
+    updateField('step', 4);
 
-    await saveToSupabase();
-    navigate('step-5');
+    // Save current step
+    const saved = await saveCurrentStep();
+    if (saved) {
+      // Navigate to step 5 (review)
+      if (goToStep(5)) {
+        navigate('step-5');
+      }
+    }
   };
 
   const handleBack = () => {
@@ -79,8 +83,25 @@ const StepFourReferral = () => {
           
           <CardContent className="space-y-6">
             <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email Address (Optional)
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your.email@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-12"
+              />
+              <p className="text-xs text-muted-foreground">
+                We'll use this to send you updates about your application
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="source" className="text-sm font-medium">
-                How did you hear about us? *
+                How did you hear about this job? *
               </Label>
               <Select value={source} onValueChange={setSource}>
                 <SelectTrigger className="h-12">
@@ -88,29 +109,12 @@ const StepFourReferral = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {sourceOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="referralCode" className="text-sm font-medium">
-                Referral Code <span className="text-muted-foreground">(optional)</span>
-              </Label>
-              <Input
-                id="referralCode"
-                type="text"
-                placeholder="Enter referral code if you have one"
-                value={referralCode}
-                onChange={(e) => setReferralCode(e.target.value)}
-                className="h-12"
-              />
-              <p className="text-xs text-muted-foreground">
-                Got a referral code from a friend? Enter it here for potential bonuses!
-              </p>
             </div>
 
             <div className="flex gap-3 mt-8">

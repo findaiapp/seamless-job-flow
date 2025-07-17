@@ -20,8 +20,8 @@ const StepFiveReview = () => {
   useEffect(() => {
     if (!submitted && formData.fullName && !isLoading) {
       setSubmitted(true);
-      submitApplication().then((res) => {
-        if (res.success) {
+      submitApplication().then((success) => {
+        if (success) {
           navigate("success", {
             state: { name: formData.fullName || "there" },
           });
@@ -48,7 +48,7 @@ const StepFiveReview = () => {
     );
   }
 
-  if (!formData.fullName || !formData.phone) {
+  if (!formData.fullName || !formData.phoneNumber) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <div className="text-center">
@@ -123,7 +123,7 @@ const StepFiveReview = () => {
                       <div>
                         <h3 className="font-semibold text-foreground">Contact & Location</h3>
                         <p className="text-sm text-muted-foreground">
-                          {formData.phone}
+                          {formData.phoneNumber}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {formData.location}
@@ -151,7 +151,7 @@ const StepFiveReview = () => {
                       <div>
                         <h3 className="font-semibold text-foreground">Skills & Availability</h3>
                         <p className="text-sm text-muted-foreground line-clamp-2">
-                          {formData.skills || "Not specified"}
+                          {formData.experience || "Not specified"}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           Can start: {formData.availability}
@@ -177,15 +177,15 @@ const StepFiveReview = () => {
                     <div className="flex items-center gap-3">
                       <Gift className="h-5 w-5 text-primary" />
                       <div>
-                        <h3 className="font-semibold text-foreground">How you found us</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {formData.source || "Not specified"}
-                        </p>
-                        {formData.referralCode && (
+                        <h3 className="font-semibold text-foreground">Contact Information</h3>
+                        {formData.email && (
                           <p className="text-sm text-muted-foreground">
-                            Referral: {formData.referralCode}
+                            Email: {formData.email}
                           </p>
                         )}
+                        <p className="text-sm text-muted-foreground">
+                          Application submitted
+                        </p>
                       </div>
                     </div>
                     <Button

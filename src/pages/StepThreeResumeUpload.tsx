@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 const StepThreeResumeUpload = () => {
   const navigate = useNavigate();
-  const { formData, updateFormData, saveToSupabase, isLoading } = useApplicationForm();
+  const { formData, updateField, saveCurrentStep, goToStep, isLoading } = useApplicationForm();
   const { toast } = useToast();
 
   const [resumeFile, setResumeFile] = useState<File | null>(null);
@@ -98,13 +98,18 @@ const StepThreeResumeUpload = () => {
       }
     }
 
-    updateFormData({
-      resumeUrl: finalResumeUrl,
-      currentStep: 4,
-    });
+    // Update form data
+    updateField('resumeUrl', finalResumeUrl || '');
+    updateField('step', 3);
 
-    await saveToSupabase();
-    navigate('step-4');
+    // Save current step
+    const saved = await saveCurrentStep();
+    if (saved) {
+      // Navigate to step 4
+      if (goToStep(4)) {
+        navigate('step-4');
+      }
+    }
   };
 
   const handleBack = () => {

@@ -9,11 +9,11 @@ import { useToast } from '@/hooks/use-toast';
 
 const StepOnePersonalInfo = () => {
   const navigate = useNavigate();
-  const { formData, updateFormData, saveToSupabase, isLoading } = useApplicationForm();
+  const { formData, updateField, saveCurrentStep, goToStep, isLoading } = useApplicationForm();
   const { toast } = useToast();
 
   const [fullName, setFullName] = useState(formData.fullName);
-  const [phone, setPhone] = useState(formData.phone);
+  const [phoneNumber, setPhoneNumber] = useState(formData.phoneNumber);
   const [location, setLocation] = useState(formData.location);
 
   useEffect(() => {
@@ -21,7 +21,7 @@ const StepOnePersonalInfo = () => {
   }, []);
 
   const handleNext = async () => {
-    if (!fullName.trim() || !phone.trim() || !location.trim()) {
+    if (!fullName.trim() || !phoneNumber.trim() || !location.trim()) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -30,16 +30,20 @@ const StepOnePersonalInfo = () => {
       return;
     }
 
-    updateFormData({
-      fullName: fullName.trim(),
-      phone: phone.trim(),
-      location: location.trim(),
-      currentStep: 2,
-    });
+    // Update form data
+    updateField('fullName', fullName.trim());
+    updateField('phoneNumber', phoneNumber.trim());
+    updateField('location', location.trim());
+    updateField('step', 1);
 
-    // Auto-save progress
-    await saveToSupabase();
-    navigate('step-2');
+    // Save current step
+    const saved = await saveCurrentStep();
+    if (saved) {
+      // Navigate to step 2
+      if (goToStep(2)) {
+        navigate('step-2');
+      }
+    }
   };
 
   return (
@@ -95,15 +99,15 @@ const StepOnePersonalInfo = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-sm font-medium">
+              <Label htmlFor="phoneNumber" className="text-sm font-medium">
                 Phone Number *
               </Label>
               <Input
-                id="phone"
+                id="phoneNumber"
                 type="tel"
                 placeholder="(555) 123-4567"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
                 className="h-12"
               />
             </div>

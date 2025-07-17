@@ -1,44 +1,43 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface ApplicationFormData {
   // Job context
-  jobId?: string;
+  jobId: string;
   jobTitle?: string;
   jobCompany?: string;
   
-  // Step 1: Personal Info
+  // Personal Info (Step 1)
   fullName: string;
-  phone: string;
-  email: string;
+  phoneNumber: string;
   location: string;
-
-  // Step 2: Skills & Availability
-  skills: string;
+  email?: string;
+  
+  // Skills & Availability (Step 2)
+  skills?: string[];
+  experience?: string;
   availability: string;
   
-  // Step 3: Resume Upload
-  resumeUrl: string;
-
-  // Step 4: Referral Info
-  referralCode: string;
-  source: string;
-
-  // Meta
-  applicationId?: string;
-  currentStep: number;
+  // Resume (Step 3)
+  resumeUrl?: string;
+  
+  // Current state
+  step: number;
   isSubmitted: boolean;
+  applicationId?: string;
 }
 
 interface ApplicationFormContextType {
   formData: ApplicationFormData;
-  updateFormData: (data: Partial<ApplicationFormData>) => void;
-  setJobContext: (jobId: string, jobTitle?: string, jobCompany?: string) => void;
-  saveToSupabase: () => Promise<{ success: boolean; id?: string }>;
-  submitApplication: () => Promise<{ success: boolean }>;
-  canAccessStep: (step: number) => boolean;
-  resetForm: () => void;
   isLoading: boolean;
+  updateField: (field: string, value: any) => void;
+  goToStep: (step: number) => boolean;
+  canAccessStep: (step: number) => boolean;
+  saveCurrentStep: () => Promise<boolean>;
+  submitApplication: () => Promise<boolean>;
+  setJobContext: (jobId: string, jobTitle?: string, jobCompany?: string) => void;
+  resetForm: () => void;
 }
 
 const initialFormData: ApplicationFormData = {
@@ -46,15 +45,14 @@ const initialFormData: ApplicationFormData = {
   jobTitle: '',
   jobCompany: '',
   fullName: '',
-  phone: '',
-  email: '',
+  phoneNumber: '',
   location: '',
-  skills: '',
+  email: '',
+  skills: [],
+  experience: '',
   availability: '',
   resumeUrl: '',
-  referralCode: '',
-  source: '',
-  currentStep: 1,
+  step: 1,
   isSubmitted: false,
 };
 
@@ -63,52 +61,31 @@ const ApplicationFormContext = createContext<ApplicationFormContextType | undefi
 export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [formData, setFormData] = useState<ApplicationFormData>(initialFormData);
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  // Load existing form data on mount
+  // Load saved data from localStorage on mount
   useEffect(() => {
-    loadExistingApplication();
+    const savedData = localStorage.getItem('applicationFormData');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setFormData(prev => ({ ...prev, ...parsed }));
+      } catch (error) {
+        console.error('Failed to load saved form data:', error);
+      }
+    }
   }, []);
 
-  const loadExistingApplication = async () => {
-    try {
-      const { data: applications, error } = await supabase
-        .from('applications')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1);
+  // Save to localStorage whenever formData changes
+  useEffect(() => {
+    localStorage.setItem('applicationFormData', JSON.stringify(formData));
+  }, [formData]);
 
-      if (!error && applications && applications.length > 0) {
-        const app = applications[0];
-        setFormData({
-          fullName: app.full_name || '',
-          phone: app.phone || '',
-          email: '',
-          location: app.location || '',
-          skills: app.skills || '',
-          availability: app.availability || '',
-          resumeUrl: app.resume_url || '',
-          referralCode: app.referral_code || '',
-          source: app.source || '',
-          applicationId: app.id,
-          currentStep: determineCurrentStep(app),
-          isSubmitted: false,
-        });
-      }
-    } catch (error) {
-      console.error('Error loading existing application:', error);
-    }
-  };
-
-  const determineCurrentStep = (app: any): number => {
-    if (!app.full_name || !app.phone || !app.location) return 1;
-    if (!app.skills || !app.availability) return 2;
-    // Step 3 is resume upload (optional)
-    if (!app.source) return 4;
-    return 5;
-  };
-
-  const updateFormData = (data: Partial<ApplicationFormData>) => {
-    setFormData(prev => ({ ...prev, ...data }));
+  const updateField = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const setJobContext = (jobId: string, jobTitle?: string, jobCompany?: string) => {
@@ -120,109 +97,199 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
     }));
   };
 
-  const saveToSupabase = async (): Promise<{ success: boolean; id?: string }> => {
+  const canAccessStep = (step: number): boolean => {
+    if (step === 1) return true;
+    if (step === 2) return !!(formData.fullName && formData.phoneNumber && formData.location);
+    if (step === 3) return !!(formData.experience && formData.availability);
+    if (step === 4) return true; // Resume is optional
+    if (step === 5) return !!(formData.fullName && formData.phoneNumber); // Review requires basic info
+    return false;
+  };
+
+  const goToStep = (step: number): boolean => {
+    if (canAccessStep(step)) {
+      setFormData(prev => ({ ...prev, step }));
+      return true;
+    }
+    
+    toast({
+      title: "Complete Previous Steps",
+      description: "Please fill in all required fields before proceeding",
+      variant: "destructive",
+    });
+    return false;
+  };
+
+  const saveCurrentStep = async (): Promise<boolean> => {
+    if (!formData.jobId) {
+      toast({
+        title: "Missing Job Information",
+        description: "No job selected for this application",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     setIsLoading(true);
     try {
-      // Use edge function for saving application steps
       const response = await supabase.functions.invoke('save-application-step', {
         body: {
           application_id: formData.applicationId,
-          step_number: formData.currentStep,
+          step_number: formData.step,
           full_name: formData.fullName,
-          phone_number: formData.phone,
+          phone_number: formData.phoneNumber,
           email: formData.email,
           location: formData.location,
-          skills: formData.skills,
+          skills: Array.isArray(formData.skills) ? formData.skills.join(', ') : formData.experience,
           availability: formData.availability,
           resume_url: formData.resumeUrl,
-          ref_code: formData.referralCode,
           job_id: formData.jobId,
+          step_data: {
+            step: formData.step,
+            timestamp: new Date().toISOString()
+          }
         }
       });
 
-      if (response.error) throw response.error;
-      
-      const result = response.data;
-      if (!result.success) throw new Error(result.error);
+      if (response.error) {
+        console.error('Save error:', response.error);
+        toast({
+          title: "Save Failed",
+          description: "Failed to save your progress. Please try again.",
+          variant: "destructive",
+        });
+        return false;
+      }
 
-      setFormData(prev => ({ ...prev, applicationId: result.application_id }));
-      return { success: true, id: result.application_id };
+      const result = response.data;
+      if (!result.success) {
+        console.error('Save failed:', result.error);
+        toast({
+          title: "Save Failed",
+          description: result.error || "Failed to save your progress",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Update application ID if this was the first save
+      if (result.application_id && !formData.applicationId) {
+        setFormData(prev => ({ ...prev, applicationId: result.application_id }));
+      }
+
+      return true;
     } catch (error) {
-      console.error('Error saving to Supabase:', error);
-      return { success: false };
+      console.error('Error saving step:', error);
+      toast({
+        title: "Save Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+      return false;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const submitApplication = async (): Promise<{ success: boolean }> => {
+  const submitApplication = async (): Promise<boolean> => {
+    if (!formData.jobId) {
+      toast({
+        title: "Missing Job Information",
+        description: "No job selected for this application",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Validate required fields
+    if (!formData.fullName || !formData.phoneNumber || !formData.location) {
+      toast({
+        title: "Missing Required Information",
+        description: "Please complete all required fields",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     setIsLoading(true);
     try {
-      // Use edge function for final submission
       const response = await supabase.functions.invoke('submit-application', {
         body: {
           full_name: formData.fullName,
-          phone_number: formData.phone,
-          email: formData.email,
+          phone_number: formData.phoneNumber,
+          email: formData.email || formData.phoneNumber, // Use phone as fallback for email
           location: formData.location,
-          skills: formData.skills,
+          skills: Array.isArray(formData.skills) ? formData.skills.join(', ') : formData.experience,
           availability: formData.availability,
           resume_url: formData.resumeUrl,
-          ref_code: formData.referralCode,
           job_id: formData.jobId,
-          source: formData.source || 'direct'
+          source: 'application_flow'
         }
       });
 
-      if (response.error) throw response.error;
-      
-      const result = response.data;
-      if (!result.success) throw new Error(result.error);
-
-      // Log referral if exists
-      if (formData.referralCode && formData.jobId) {
-        await supabase.functions.invoke('log-referral', {
-          body: {
-            referral_code: formData.referralCode,
-            job_id: formData.jobId,
-            application_id: result.application_id
-          }
+      if (response.error) {
+        console.error('Submit error:', response.error);
+        toast({
+          title: "Submission Failed",
+          description: "Failed to submit your application. Please try again.",
+          variant: "destructive",
         });
+        return false;
       }
 
-      setFormData(prev => ({ ...prev, isSubmitted: true, applicationId: result.application_id }));
-      return { success: true };
+      const result = response.data;
+      if (!result.success) {
+        console.error('Submit failed:', result.error);
+        toast({
+          title: "Submission Failed",
+          description: result.error || "Failed to submit your application",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Mark as submitted
+      setFormData(prev => ({
+        ...prev,
+        isSubmitted: true,
+        applicationId: result.application_id
+      }));
+
+      toast({
+        title: "Application Submitted! 🎉",
+        description: "Your application has been successfully submitted",
+      });
+
+      return true;
     } catch (error) {
       console.error('Error submitting application:', error);
-      return { success: false };
+      toast({
+        title: "Submission Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+      return false;
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const canAccessStep = (step: number): boolean => {
-    if (step === 1) return true;
-    if (step === 2) return !!formData.fullName && !!formData.phone && !!formData.location;
-    if (step === 3) return !!formData.skills && !!formData.availability;
-    if (step === 4) return true; // Resume step is optional, anyone who completed step 2 can access
-    if (step === 5) return !!formData.fullName && !!formData.phone; // Review requires basic info
-    return false;
   };
 
   const resetForm = () => {
     setFormData(initialFormData);
+    localStorage.removeItem('applicationFormData');
   };
 
   return (
     <ApplicationFormContext.Provider value={{
-    formData,
-    updateFormData,
-    setJobContext,
-    saveToSupabase,
-    submitApplication,
-    canAccessStep,
-    resetForm,
-    isLoading,
+      formData,
+      isLoading,
+      updateField,
+      goToStep,
+      canAccessStep,
+      saveCurrentStep,
+      submitApplication,
+      setJobContext,
+      resetForm,
     }}>
       {children}
     </ApplicationFormContext.Provider>
