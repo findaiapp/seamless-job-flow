@@ -1,33 +1,44 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Heart, MapPin, DollarSign, Flame } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from 'react';
 
 interface JobsYoullLoveProps {
   onJobClick: (jobId: string) => void;
 }
 
 export function JobsYoullLove({ onJobClick }: JobsYoullLoveProps) {
-  // Mock data for demonstration
-  const mockJobs = [
-    {
-      id: '1',
-      title: 'Delivery Driver',
-      company: 'QuickDelivery Inc',
-      location: 'Brooklyn, NY',
-      pay_range: '$18-22/hr',
-      matchScore: 95,
-      is_hot: true,
-    },
-    {
-      id: '2',
-      title: 'Warehouse Associate',
-      company: 'StorageCorp',
-      location: 'Queens, NY',
-      pay_range: '$16-20/hr',
-      matchScore: 88,
-      is_hot: false,
-    }
-  ];
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('jobs')
+          .select('*')
+          .limit(2);
+        
+        if (error) throw error;
+        
+        // Add mock match scores and hot status for display
+        const jobsWithExtraData = data?.map(job => ({
+          ...job,
+          matchScore: Math.floor(Math.random() * 30) + 70, // 70-100%
+          is_hot: Math.random() > 0.5
+        })) || [];
+        
+        setJobs(jobsWithExtraData);
+      } catch (error) {
+        console.error('Failed to fetch jobs:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobs();
+  }, []);
 
   return (
     <div className="mb-6">
@@ -42,7 +53,25 @@ export function JobsYoullLove({ onJobClick }: JobsYoullLoveProps) {
       </div>
       
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-        {mockJobs.map((job) => (
+        {loading ? (
+          // Loading state
+          Array.from({ length: 2 }, (_, i) => (
+            <Card key={i} className="min-w-[280px] animate-pulse">
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
+                  <div className="h-3 bg-muted rounded w-1/2"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : jobs.length === 0 ? (
+          <div className="text-center text-muted-foreground py-4">
+            No jobs available at the moment
+          </div>
+        ) : (
+          jobs.map((job) => (
           <Card 
             key={job.id} 
             className="min-w-[280px] cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-primary"
@@ -82,7 +111,8 @@ export function JobsYoullLove({ onJobClick }: JobsYoullLoveProps) {
               </div>
             </CardContent>
           </Card>
-        ))}
+        ))
+        )}
       </div>
     </div>
   );
