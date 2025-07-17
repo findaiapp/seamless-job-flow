@@ -195,46 +195,76 @@ export type Database = {
       }
       jobs: {
         Row: {
+          application_link: string | null
+          approved_at: string | null
+          approved_by: string | null
           benefits: string | null
           company: string
+          contact_method: string | null
           created_at: string
           description: string
+          employer_name: string
           id: string
+          is_approved: boolean | null
           is_verified: boolean | null
           job_type: string | null
           location: string
           pay_range: string | null
           posted_at: string
+          posted_by: string | null
           requirements: string | null
+          status: string | null
           title: string
+          updated_at: string | null
+          utm_source: string | null
         }
         Insert: {
+          application_link?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           benefits?: string | null
           company: string
+          contact_method?: string | null
           created_at?: string
           description: string
+          employer_name: string
           id?: string
+          is_approved?: boolean | null
           is_verified?: boolean | null
           job_type?: string | null
           location: string
           pay_range?: string | null
           posted_at?: string
+          posted_by?: string | null
           requirements?: string | null
+          status?: string | null
           title: string
+          updated_at?: string | null
+          utm_source?: string | null
         }
         Update: {
+          application_link?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           benefits?: string | null
           company?: string
+          contact_method?: string | null
           created_at?: string
           description?: string
+          employer_name?: string
           id?: string
+          is_approved?: boolean | null
           is_verified?: boolean | null
           job_type?: string | null
           location?: string
           pay_range?: string | null
           posted_at?: string
+          posted_by?: string | null
           requirements?: string | null
+          status?: string | null
           title?: string
+          updated_at?: string | null
+          utm_source?: string | null
         }
         Relationships: []
       }
@@ -507,6 +537,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

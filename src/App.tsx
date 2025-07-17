@@ -14,7 +14,7 @@ import CraigslistPostGenerator from "./pages/CraigslistPostGenerator";
 import CraigslistAutoPage from "./pages/CraigslistAutoPage";
 import AlertsPage from "./pages/AlertsPage";
 import AlertsOptInPage from "./pages/AlertsOptInPage";
-import SMSBlastPage from "./pages/SMSBlastPage";
+import AdminJobsPage from "./pages/AdminJobsPage";
 import SettingsPage from "./pages/SettingsPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ReferralsDashboard from "./pages/ReferralsDashboard";
@@ -47,13 +47,13 @@ const App = () => (
               <Route path="/craigslist-auto" element={<CraigslistAutoPage />} />
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/alerts-optin" element={<AlertsOptInPage />} />
-              <Route path="/admin/sms-blast" element={<SMSBlastPage />} />
+              <Route path="/admin/jobs" element={<AdminJobsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/thank-you" element={<ThankYouPage />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/referrals-dashboard" element={<ReferralsDashboard />} />
           <Route path="/repost-engine" element={<RepostEngine />} />
-          <Route path="/post-tracker" element={<PostTracker />} />
+          <Route path="/post-job" element={<PostJobPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
