@@ -32,6 +32,26 @@ export const useJobPreloader = (jobId: string) => {
         setIsLoading(true);
         setError(null);
 
+        // Handle dev test job case
+        if (jobId === 'dev-test-job') {
+          const testJob: Job = {
+            id: 'dev-test-job',
+            title: 'Test Job - Application Flow',
+            company: 'Hireloop',
+            location: 'New York, NY',
+            description: 'This is a test job to debug the 5-step application flow. Use this to test all features including form validation, resume upload, and final submission.',
+            pay_range: '$20-25/hr',
+            job_type: 'Full-time',
+            requirements: 'No real requirements - this is just for testing the application flow.',
+            benefits: 'Testing benefits: Health insurance, Remote work, Flexible schedule'
+          };
+          
+          setJob(testJob);
+          console.log('✅ Dev test job loaded:', testJob);
+          setIsLoading(false);
+          return;
+        }
+
         const { data, error: fetchError } = await supabase
           .from('jobs')
           .select('*')

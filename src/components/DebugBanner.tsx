@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Database, Bug } from 'lucide-react';
+import { ChevronDown, ChevronUp, Database, Bug, PlayCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const DebugBanner = () => {
@@ -67,6 +68,17 @@ const DebugBanner = () => {
                 {isLoading ? '...' : applicationCount}
               </Badge>
             </div>
+            
+            <Link to="/apply/dev-test-job" className="block">
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="w-full text-xs bg-foreground text-background hover:bg-foreground/90"
+              >
+                <PlayCircle className="h-3 w-3 mr-1" />
+                🚧 Test Application Flow
+              </Button>
+            </Link>
             
             <Button 
               variant="outline" 
