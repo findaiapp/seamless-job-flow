@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useApplicationForm } from "@/contexts/ApplicationFormContext";
+import { useApplicationForm } from "@/components/apply-flow/context/ApplicationFormContext";
 import { useToast } from "@/hooks/use-toast";
 import { User, Phone, MapPin, Briefcase, Clock, Link, Gift, Edit } from "lucide-react";
 

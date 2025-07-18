@@ -15,10 +15,10 @@ const ApplyFlowContent: React.FC = () => {
   const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
 
-  // Auto-redirect from /apply to /apply/test123
+  // Auto-redirect from /apply to the test job we created
   useEffect(() => {
     if (!jobId) {
-      navigate('/apply/test123', { replace: true });
+      navigate('/apply/43c97bb7-dcf0-4302-a445-805091309dd6', { replace: true });
     }
   }, [jobId, navigate]);
   const { job, isLoading, error } = useJobPreloader(jobId || '');

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApplicationForm } from '@/contexts/ApplicationFormContext';
+import { useApplicationForm } from '@/components/apply-flow/context/ApplicationFormContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface ApplicationStepGuardProps {

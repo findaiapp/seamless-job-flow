@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApplicationForm } from '@/contexts/ApplicationFormContext';
+import { useApplicationForm } from '@/components/apply-flow/context/ApplicationFormContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useApplicationForm } from '@/contexts/ApplicationFormContext';
+import { useApplicationForm } from '@/components/apply-flow/context/ApplicationFormContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

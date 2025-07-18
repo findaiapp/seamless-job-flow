@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useParams, useNavigate } from 'react-router-do
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { useApplicationForm } from '@/contexts/ApplicationFormContext';
+import { useApplicationForm } from '@/components/apply-flow/context/ApplicationFormContext';
 import ApplicationStepGuard from './ApplicationStepGuard';
 import StepOnePersonalInfo from '@/pages/StepOnePersonalInfo';
 import StepTwoPreferences from '@/pages/StepTwoPreferences';
