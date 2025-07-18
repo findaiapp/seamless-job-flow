@@ -58,6 +58,8 @@ export type Database = {
           id: string
           job_id: string | null
           location: string | null
+          media_type: string | null
+          media_url: string | null
           phone: string | null
           ref_code: string | null
           referral_code: string | null
@@ -75,6 +77,8 @@ export type Database = {
           id?: string
           job_id?: string | null
           location?: string | null
+          media_type?: string | null
+          media_url?: string | null
           phone?: string | null
           ref_code?: string | null
           referral_code?: string | null
@@ -92,6 +96,8 @@ export type Database = {
           id?: string
           job_id?: string | null
           location?: string | null
+          media_type?: string | null
+          media_url?: string | null
           phone?: string | null
           ref_code?: string | null
           referral_code?: string | null
