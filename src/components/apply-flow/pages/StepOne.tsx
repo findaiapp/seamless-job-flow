@@ -8,6 +8,8 @@ import { useApplicationForm } from "../context/ApplicationFormContext";
 import { User, Phone, MapPin, Mail } from "lucide-react";
 import { JobCard } from "../components/JobCard";
 import { useToast } from "@/hooks/use-toast";
+import AutofillBar from "../components/AutofillBar";
+import MotivationBanner from "../components/MotivationBanner";
 
 const StepOne = () => {
   const navigate = useNavigate();
@@ -28,6 +30,13 @@ const StepOne = () => {
   const handleInputChange = (field: string, value: string) => {
     setLocalData(prev => ({ ...prev, [field]: value }));
     updateField(field, value);
+  };
+
+  const handleAutofill = (autofillData: any) => {
+    setLocalData(prev => ({ ...prev, ...autofillData }));
+    Object.keys(autofillData).forEach(key => {
+      updateField(key, autofillData[key]);
+    });
   };
 
   const handleContinue = async () => {
@@ -52,6 +61,12 @@ const StepOne = () => {
       <div className="w-full max-w-lg mx-auto">
         {/* Job Card */}
         {job && <JobCard job={job} />}
+        
+        {/* Autofill Bar */}
+        <AutofillBar onAutofill={handleAutofill} currentFormData={localData} />
+        
+        {/* Motivation Banner */}
+        <MotivationBanner step={1} />
         
         {/* Progress indicator */}
         <div className="mb-8">

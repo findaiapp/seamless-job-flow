@@ -6,6 +6,7 @@ import { useApplicationForm } from "../context/ApplicationFormContext";
 import { Upload, FileText, ArrowLeft, X, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import MotivationBanner from "../components/MotivationBanner";
 
 const StepThree = () => {
   const navigate = useNavigate();
@@ -126,6 +127,9 @@ const StepThree = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
       <div className="w-full max-w-lg mx-auto">
+        {/* Motivation Banner */}
+        <MotivationBanner step={3} />
+        
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">

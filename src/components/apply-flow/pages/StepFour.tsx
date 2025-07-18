@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApplicationForm } from "../context/ApplicationFormContext";
 import { Gift, ArrowLeft, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import MotivationBanner from "../components/MotivationBanner";
 
 const StepFour = () => {
   const navigate = useNavigate();
@@ -48,6 +49,9 @@ const StepFour = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
       <div className="w-full max-w-lg mx-auto">
+        {/* Motivation Banner */}
+        <MotivationBanner step={4} />
+        
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">

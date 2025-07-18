@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, Search, FileText } from 'lucide-react';
 import Confetti from 'react-confetti';
+import ReferralCTA from '../components/ReferralCTA';
+import InstantMatchJobs from '../components/InstantMatchJobs';
 
 const SuccessPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { formData, resetForm } = useApplicationForm();
+  const { formData, resetForm, job } = useApplicationForm();
   const { toast } = useToast();
   
   const [showConfetti, setShowConfetti] = useState(true);
@@ -25,8 +27,11 @@ const SuccessPage = () => {
                    formData.fullName || 
                    "there";
   
-  const jobTitle = formData.jobTitle || 'this position';
-  const jobCompany = formData.jobCompany;
+  const jobTitle = formData.jobTitle || job?.title || 'this position';
+  const jobCompany = formData.jobCompany || job?.company;
+  const jobId = formData.jobId || job?.id || '';
+  const userLocation = formData.location;
+  const jobType = job?.job_type;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -184,6 +189,20 @@ const SuccessPage = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Referral CTA */}
+        {userName && jobId && (
+          <ReferralCTA userName={userName} jobId={jobId} />
+        )}
+
+        {/* Instant Match Jobs */}
+        {jobId && (
+          <InstantMatchJobs 
+            currentJobId={jobId}
+            userLocation={userLocation}
+            jobType={jobType}
+          />
+        )}
 
         {/* Floating Success Elements */}
         <div className="absolute -top-4 -left-4 text-4xl animate-bounce">🎉</div>
