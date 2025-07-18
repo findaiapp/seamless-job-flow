@@ -93,7 +93,7 @@ export default function SearchJobsPage() {
       console.error('Failed to track job click:', error);
     }
 
-    navigate(`/apply/${jobId}`);
+    navigate(`/apply/${jobId}/step-1`);
   };
   const [user, setUser] = useState<User | null>(null);
   const { isJobSaved, toggleSavedJob, getSavedJobsCount } = useSavedJobs(user);
@@ -404,7 +404,7 @@ export default function SearchJobsPage() {
       console.error('Failed to track job click:', error);
     }
 
-    navigate(`/apply/${jobId}`);
+    navigate(`/apply/${jobId}/step-1`);
   };
 
   const openAlertModal = (jobTitle?: string) => {
