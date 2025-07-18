@@ -1337,7 +1337,7 @@ export default function SearchJobsPage() {
 
       {/* Debug Test Button - Development Only */}
       {process.env.NODE_ENV !== 'production' && (
-        <Link to="/apply/test123" className="fixed bottom-4 right-4 z-50">
+        <Link to="/apply/43c97bb7-dcf0-4302-a445-805091309dd6" className="fixed bottom-4 right-4 z-50">
           <Button className="bg-foreground text-background hover:bg-foreground/90 text-sm px-4 py-2 rounded-full shadow-lg">
             🚀 Test Application Flow
           </Button>

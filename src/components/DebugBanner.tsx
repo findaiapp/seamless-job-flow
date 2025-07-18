@@ -69,7 +69,7 @@ const DebugBanner = () => {
               </Badge>
             </div>
             
-            <Link to="/apply/dev-test-job" className="block">
+            <Link to="/apply/43c97bb7-dcf0-4302-a445-805091309dd6" className="block">
               <Button 
                 variant="default" 
                 size="sm" 
