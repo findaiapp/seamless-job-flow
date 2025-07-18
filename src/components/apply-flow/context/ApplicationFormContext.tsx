@@ -31,15 +31,28 @@ interface ApplicationFormData {
   applicationId?: string;
 }
 
+interface Job {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  pay_range?: string;
+  is_verified?: boolean;
+  description?: string;
+  benefits?: string;
+  job_type?: string;
+}
+
 interface ApplicationFormContextType {
   formData: ApplicationFormData;
+  job?: Job;
   isLoading: boolean;
   updateField: (field: string, value: any) => void;
   goToStep: (step: number) => boolean;
   canAccessStep: (step: number) => boolean;
   saveCurrentStep: () => Promise<boolean>;
   submitApplication: () => Promise<boolean>;
-  setJobContext: (jobId: string, jobTitle?: string, jobCompany?: string) => void;
+  setJobContext: (job: Job) => void;
   resetForm: () => void;
 }
 
@@ -64,6 +77,7 @@ const ApplicationFormContext = createContext<ApplicationFormContextType | undefi
 
 export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [formData, setFormData] = useState<ApplicationFormData>(initialFormData);
+  const [job, setJob] = useState<Job | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -92,12 +106,13 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
     }));
   };
 
-  const setJobContext = (jobId: string, jobTitle?: string, jobCompany?: string) => {
+  const setJobContext = (jobData: Job) => {
+    setJob(jobData);
     setFormData(prev => ({
       ...prev,
-      jobId,
-      jobTitle: jobTitle || '',
-      jobCompany: jobCompany || ''
+      jobId: jobData.id,
+      jobTitle: jobData.title,
+      jobCompany: jobData.company
     }));
   };
 
@@ -298,6 +313,7 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
   return (
     <ApplicationFormContext.Provider value={{
       formData,
+      job,
       isLoading,
       updateField,
       goToStep,

@@ -27,7 +27,7 @@ const ApplyFlowContent: React.FC = () => {
   // Set job context when job is loaded
   useEffect(() => {
     if (job) {
-      setJobContext(job.id, job.title, job.company);
+      setJobContext(job);
       console.log('✅ Job context set:', { id: job.id, title: job.title, company: job.company });
     }
   }, [job, setJobContext]);

@@ -53,7 +53,7 @@ const ApplicationFlowRouter: React.FC = () => {
       if (job) {
         setJobData(job);
         // Set job context in the application form
-        setJobContext(job.id, job.title, job.company);
+        setJobContext(job);
       } else {
         setJobData(null);
       }
