@@ -22,6 +22,10 @@ interface ApplicationFormData {
   // Resume (Step 3)
   resumeUrl?: string;
   
+  // Media (Step 2)
+  mediaUrl?: string;
+  mediaType?: 'video' | 'audio';
+  
   // Referral (Step 4)
   referralCode?: string;
   

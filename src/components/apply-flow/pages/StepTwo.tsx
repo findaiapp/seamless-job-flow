@@ -9,6 +9,7 @@ import { useApplicationForm } from "../context/ApplicationFormContext";
 import { Briefcase, Clock, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import MotivationBanner from "../components/MotivationBanner";
+import MediaUpload from "../components/MediaUpload";
 
 const StepTwo = () => {
   const navigate = useNavigate();
@@ -20,6 +21,9 @@ const StepTwo = () => {
     availability: formData.availability || ''
   });
 
+  const [mediaUrl, setMediaUrl] = useState(formData.mediaUrl || '');
+  const [mediaType, setMediaType] = useState<'video' | 'audio'>(formData.mediaType as 'video' | 'audio' || 'video');
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -27,6 +31,13 @@ const StepTwo = () => {
   const handleInputChange = (field: string, value: string) => {
     setLocalData(prev => ({ ...prev, [field]: value }));
     updateField(field, value);
+  };
+
+  const handleMediaUploaded = (url: string, type: 'video' | 'audio') => {
+    setMediaUrl(url);
+    setMediaType(type);
+    updateField('mediaUrl', url);
+    updateField('mediaType', type);
   };
 
   const handleBack = () => {
@@ -121,6 +132,13 @@ const StepTwo = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Media Upload */}
+            <MediaUpload 
+              onMediaUploaded={handleMediaUploaded}
+              currentMediaUrl={mediaUrl}
+              currentMediaType={mediaType}
+            />
 
             {/* Navigation Buttons */}
             <div className="flex gap-4 mt-8">

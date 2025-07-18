@@ -7,6 +7,7 @@ import { Upload, FileText, ArrowLeft, X, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import MotivationBanner from "../components/MotivationBanner";
+import AIResumeGenerator from "../components/AIResumeGenerator";
 
 const StepThree = () => {
   const navigate = useNavigate();
@@ -101,6 +102,12 @@ const StepThree = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const handleAIResumeGenerated = (resumeUrl: string) => {
+    updateField('resumeUrl', resumeUrl);
+    setUploadedFile('AI Generated Resume');
+    setUploadState('success');
   };
 
   const handleBack = () => {
@@ -235,6 +242,11 @@ const StepThree = () => {
                 className="hidden"
               />
             </div>
+
+            {/* AI Resume Generator - Show only if no resume uploaded */}
+            {uploadState === 'idle' && (
+              <AIResumeGenerator onResumeGenerated={handleAIResumeGenerated} />
+            )}
 
             {/* File Requirements */}
             <div className="text-xs text-muted-foreground space-y-1">
