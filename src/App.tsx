@@ -20,7 +20,7 @@ import GenerateFakeJobsPage from "./pages/GenerateFakeJobsPage";
 import ReferralsDashboard from "./pages/ReferralsDashboard";
 import RepostEngine from "./pages/RepostEngine";
 import PostTracker from "./pages/PostTracker";
-import ApplicationFlowRouter from "./components/ApplicationFlowRouter";
+import ApplyFlowRouter from "./components/apply-flow/ApplyFlowRouter";
 import NotFound from "./pages/NotFound";
 import DebugBanner from "./components/DebugBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -38,9 +38,9 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/search-jobs" element={<SearchJobsPage />} />
-              <Route path="/apply/:job_id" element={<ApplicationFlowRouter />} />
+              <Route path="/apply/:job_id/*" element={<ApplyFlowRouter />} />
               <Route path="/apply" element={<ApplyFallback />} />
-              <Route path="/apply/*" element={<ApplicationFlowRouter />} />
+              <Route path="/apply/*" element={<ApplyFlowRouter />} />
               <Route path="/post-job" element={<PostJobPage />} />
               <Route path="/craigslist-generator" element={<CraigslistPostGenerator />} />
               <Route path="/craigslist-auto" element={<CraigslistAutoPage />} />

@@ -12,16 +12,16 @@ import JobNotFound from './pages/JobNotFound';
 
 // Inner component that has access to the context
 const ApplyFlowContent: React.FC = () => {
-  const { jobId } = useParams<{ jobId: string }>();
+  const { job_id } = useParams<{ job_id: string }>();
   const navigate = useNavigate();
 
   // Auto-redirect from /apply to the test job we created
   useEffect(() => {
-    if (!jobId) {
+    if (!job_id) {
       navigate('/apply/43c97bb7-dcf0-4302-a445-805091309dd6', { replace: true });
     }
-  }, [jobId, navigate]);
-  const { job, isLoading, error } = useJobPreloader(jobId || '');
+  }, [job_id, navigate]);
+  const { job, isLoading, error } = useJobPreloader(job_id || '');
   const { setJobContext } = useApplicationForm();
 
   // Set job context when job is loaded
